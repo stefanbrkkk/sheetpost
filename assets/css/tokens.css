@@ -1,0 +1,87 @@
+/* ============================================================
+   SHEETPOST V2 — design tokens
+   Concept: "the grid becomes official" — two worlds, one document.
+   INK WORLD (dark): the spreadsheet. PAPER WORLD (light, one act):
+   the government document. One accent (mint-jade). One seal red.
+   Fonts: Bricolage Grotesque (display) / Figtree (body) / JetBrains Mono (data).
+   Motion: one easing family, documented durations.
+   ============================================================ */
+
+:root {
+  /* ---- ink world surfaces (never pure #000) ---- */
+  --bg-0: #080B09;
+  --bg-1: #0D120E;
+  --bg-2: #121A14;
+  --bg-3: #182219;
+
+  --line: rgba(206, 244, 220, 0.07);
+  --line-hi: rgba(206, 244, 220, 0.18);
+  --line-grad: linear-gradient(180deg, rgba(206,244,220,.16), rgba(206,244,220,.02));
+
+  --fg-hi: #EEF4ED;
+  --fg: #B7C3B8;
+  --fg-lo: #7C877D;
+  --fg-faint: #78837A;
+
+  /* the one accent, deployed like ammunition */
+  --acc: #3ECF8E;
+  --acc-bright: #9BF6C8;
+  --acc-dim: rgba(62, 207, 142, 0.13);
+  --acc-ink: #0B2417;            /* text on accent */
+  --seal: #C8452F;               /* stamps + errors only */
+  --seal-bright: #E4644E;
+  --warn: #D9A13B;
+
+  /* ---- paper world (the single light act) ---- */
+  --p-bg: #EDEEE4;               /* banknote paper, green cast */
+  --p-bg-2: #E4E6D9;
+  --p-panel: #F4F5EC;
+  --p-ink: #14211A;
+  --p-fg: #46524A;
+  --p-lo: #5F6A58;
+  --p-line: rgba(20, 33, 26, 0.16);
+  --p-line-hi: rgba(20, 33, 26, 0.32);
+  --p-acc: #157A48;
+  --p-acc-dim: rgba(21, 122, 72, 0.12);
+  --p-seal: #B23B28;
+
+  /* ---- type ---- */
+  --font-d: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+  --font-b: 'Figtree', 'Segoe UI', sans-serif;
+  --font-m: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --fs-h1: clamp(2.5rem, 5.6vw, 4.6rem);
+  --fs-h2: clamp(1.9rem, 3.6vw, 3rem);
+  --fs-h3: clamp(1.15rem, 1.6vw, 1.35rem);
+  --fs-body: 1.0625rem;
+  --fs-small: 0.9rem;
+  --fs-micro: 0.75rem;
+
+  /* ---- motion (the only easings on the page) ---- */
+  --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --e-io: cubic-bezier(0.83, 0, 0.17, 1);
+  --e-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --d1: 160ms;
+  --d2: 350ms;
+  --d3: 700ms;
+  --d4: 1100ms;
+
+  /* ---- shape ---- */
+  --r-in: 8px;
+  --r-card: 14px;
+  --r-panel: 22px;
+  --r-pill: 999px;
+
+  /* ---- layout ---- */
+  --wrap: 1240px;
+  --wrap-narrow: 780px;
+  --gutter: clamp(20px, 5vw, 48px);
+  --sec-pad: clamp(96px, 11vw, 160px);
+
+  /* ---- z scale: 0 content / 10 sticky / 60 nav / 90 menu / 120 modal / 200 grain ---- */
+  --z-sticky: 10;
+  --z-nav: 60;
+  --z-menu: 90;
+  --z-modal: 120;
+  --z-grain: 200;
+}

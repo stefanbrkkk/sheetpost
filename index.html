@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<!--
+  SHEETPOST V2, "the grid becomes official"
+  Design thinking (internal):
+  · Purpose: convert spreadsheet-native Polish SMBs + accountants into subscribers
+    by letting them run the real conversion once, right here.
+  · Tone: industrial officialdom, banknote gravitas × spreadsheet precision.
+  · Constraints: static, $0 hosting, 5 languages, reduced-motion safe,
+    mobile-first (PL micro-SMBs are phone-heavy), no console errors, no emoji.
+  · Differentiation: one continuous scene where the spreadsheet literally becomes
+    a government document + a real one-run demo before the gate.
+  Languages: PL is the static/no-JS default (SEO); EN/DE/HR/RO via assets/js/i18n.js.
+-->
+<html lang="pl" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sheetpost: faktury z Excela zgodne z KSeF. Bez migracji.</title>
+<meta name="description" content="Połącz Excel lub Google Sheets. Sheetpost mapuje kolumny AI, waliduje każdy wiersz i wysyła faktury zgodne z KSeF 2.0 (FA(3)), z archiwum na 10 lat. Wypróbuj bezpłatnie.">
+<meta name="theme-color" content="#080B09">
+<link rel="canonical" href="https://sheetpost.app/">
+<link rel="alternate" hreflang="pl" href="https://sheetpost.app/">
+<link rel="alternate" hreflang="en" href="https://sheetpost.app/?lang=en">
+<link rel="alternate" hreflang="de" href="https://sheetpost.app/?lang=de">
+<link rel="alternate" hreflang="hr" href="https://sheetpost.app/?lang=hr">
+<link rel="alternate" hreflang="ro" href="https://sheetpost.app/?lang=ro">
+<link rel="alternate" hreflang="x-default" href="https://sheetpost.app/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sheetpost">
+<meta property="og:title" content="Sheetpost: arkusz zostaje. Faktura staje się urzędowa.">
+<meta property="og:description" content="Faktury z Excela zgodne z KSeF 2.0. Walidacja przed wysyłką, archiwum na 10 lat, cena zablokowana na zawsze.">
+<meta property="og:url" content="https://sheetpost.app/">
+<meta property="og:image" content="https://sheetpost.app/assets/img/og.png">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:locale:alternate" content="en_GB">
+<meta property="og:locale:alternate" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sheetpost: arkusz zostaje. Faktura staje się urzędowa.">
+<meta name="twitter:description" content="Faktury z Excela zgodne z KSeF 2.0. Wypróbuj silnik walidacji FA(3) bezpośrednio na stronie.">
+<meta name="twitter:image" content="https://sheetpost.app/assets/img/og.png">
+
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="manifest" href="site.webmanifest">
+<link rel="icon" type="image/png" href="assets/img/favicon-512.png" sizes="512x512">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+
+<link rel="preload" href="assets/fonts/bricolage-grotesque-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/bricolage-grotesque-var-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="stylesheet" href="assets/css/fonts.css">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/sections.css">
+<link rel="stylesheet" href="assets/css/paper.css">
+<link rel="stylesheet" href="assets/css/demo.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Sheetpost",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "description": "Faktury z Excela lub Google Sheets zgodne z KSeF 2.0 (FA(3)). Walidacja przed wysyłką, statusy UPO, archiwum na 10 lat.",
+  "inLanguage": "pl",
+  "offers": [
+    { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "PLN" },
+    { "@type": "Offer", "name": "Solo", "price": "39", "priceCurrency": "PLN" },
+    { "@type": "Offer", "name": "Business", "price": "79", "priceCurrency": "PLN" },
+    { "@type": "Offer", "name": "Księgowy", "price": "199", "priceCurrency": "PLN" },
+    { "@type": "Offer", "name": "Solo", "price": "9", "priceCurrency": "EUR" },
+    { "@type": "Offer", "name": "Business", "price": "19", "priceCurrency": "EUR" },
+    { "@type": "Offer", "name": "Księgowy", "price": "49", "priceCurrency": "EUR" }
+  ]
+}
+</script>
+<noscript>
+  <style>
+    .m-sheet { opacity: 0 !important; }
+    .m-paper, .m-portal { opacity: 1 !important; pointer-events: auto; }
+    .m-paper .stamp { opacity: 1 !important; transform: rotate(-7deg); }
+    .portal-check { opacity: 1 !important; transform: none !important; }
+    .paper-sheet { position: static !important; transform: none !important; }
+    .bridge-backdrop { display: none !important; }
+    .sheet-edge { display: none !important; }
+    [data-reveal] { opacity: 1 !important; transform: none !important; }
+    .lm-i { transform: none !important; }
+    .hero-bg canvas { display: none; }
+    .grain { display: none; }
+  </style>
+</noscript>
+</head>
+<body>
+<a class="skip" href="#main">Przejdź do treści</a>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ================= NAV ================= -->
+<header class="nav" id="nav">
+  <a class="brand" href="#top" aria-label="Sheetpost, strona główna">
+    <span class="brand-mark" aria-hidden="true"></span>Sheetpost<span class="brand-tld">.app</span>
+  </a>
+  <nav class="nav-links" aria-label="Nawigacja główna">
+    <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+    <a href="#how" data-i18n="nav_how">Jak to działa</a>
+    <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
+    <a href="#pricing" data-i18n="nav_pricing">Cennik</a>
+    <a href="#faq" data-i18n="nav_faq">FAQ</a>
+  </nav>
+  <div class="nav-right">
+    <div class="langs" id="langs" role="group" aria-label="Język">
+      <button type="button" data-lang="pl" aria-pressed="true">PL</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" data-lang="de" aria-pressed="false">DE</button>
+      <button type="button" data-lang="hr" aria-pressed="false">HR</button>
+      <button type="button" data-lang="ro" aria-pressed="false">RO</button>
+    </div>
+    <a class="btn btn-primary btn-sm" href="#demo"><span data-i18n="nav_cta">Wypróbuj bezpłatnie</span></a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- mobile menu -->
+<div class="menu" id="menu" hidden>
+  <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+  <a href="#how" data-i18n="nav_how">Jak to działa</a>
+  <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
+  <a href="#pricing" data-i18n="nav_pricing">Cennik</a>
+  <a href="#faq" data-i18n="nav_faq">FAQ</a>
+  <div class="menu-foot">
+    <div class="langs" role="group" aria-label="Język">
+      <button type="button" data-lang="pl" aria-pressed="true">PL</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" data-lang="de" aria-pressed="false">DE</button>
+      <button type="button" data-lang="hr" aria-pressed="false">HR</button>
+      <button type="button" data-lang="ro" aria-pressed="false">RO</button>
+    </div>
+    <a class="btn btn-primary btn-block" href="#demo"><span data-i18n="nav_cta">Wypróbuj bezpłatnie</span></a>
+  </div>
+</div>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top" aria-label="Wprowadzenie">
+  <div class="hero-bg" aria-hidden="true"><canvas id="cells"></canvas></div>
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <p class="chip" data-reveal><span class="dot" aria-hidden="true"></span><span data-i18n="hero_chip">KSeF obowiązuje · Francja przejmuje stafetę 09/2026</span></p>
+      <h1 id="hero-h1" data-reveal>
+        <span data-i18n-html="hero_h1a">Arkusz zostaje arkuszem.</span>
+        <span data-i18n-html="hero_h1b">Faktura staje się <em>urzędowa</em>.</span>
+      </h1>
+      <p class="hero-sub" data-reveal><span data-i18n="hero_sub">Wklej wiersze z Excela. Sheetpost zmapuje kolumny, waliduje każdą pozycję i wyśle fakturę zgodną z KSeF.</span> <strong data-i18n="hero_sub_strong">39 zł/mies., cena zablokowana.</strong></p>
+      <div class="hero-cta" data-reveal>
+        <a class="btn btn-primary magnetic" href="#demo"><span data-i18n="hero_cta1">Wypróbuj bezpłatnie</span></a>
+        <a class="btn btn-ghost" href="#how"><span data-i18n="hero_cta2">Zobacz, jak to działa</span></a>
+      </div>
+      <p class="hero-meta mono" data-reveal data-i18n="hero_meta">Bez wyciągania danych. Bez zmiany księgowości. Bez migracji.</p>
+    </div>
+
+    <div class="machine" id="machine" data-phase="grid" aria-label="Animacja: wiersz z arkusza staje się e-fakturą i trafia do KSeF" role="img">
+      <!-- world 1: the grid -->
+      <div class="m-panel m-sheet" id="m-sheet">
+        <div class="sheet-head" aria-hidden="true"><span></span><span>A</span><span>B</span><span>C</span><span>D</span></div>
+        <div class="sheet-rows" aria-hidden="true">
+          <div class="sheet-row"><span class="rc">1</span><span class="cell head">nazwa</span><span class="cell head">ilość</span><span class="cell head">netto</span><span class="cell head">VAT</span></div>
+          <div class="sheet-row" data-row="1"><span class="rc">2</span><span class="cell" data-t="Web design, Przykładowa sp. z o.o.">Web design, Przykładowa sp. z o.o.</span><span class="cell" data-t="1">1</span><span class="cell" data-t="1200,00">1200,00</span><span class="cell" data-t="23%">23%</span></div>
+          <div class="sheet-row" data-row="2"><span class="rc">3</span><span class="cell" data-t="SEO, abonament">SEO, abonament</span><span class="cell" data-t="1">1</span><span class="cell" data-t="800,00">800,00</span><span class="cell" data-t="23%">23%</span></div>
+          <div class="sheet-row" data-row="3"><span class="rc">4</span><span class="cell" data-t="Razem">Razem</span><span class="cell"></span><span class="cell" data-t="2 000,00">2 000,00</span><span class="cell"></span></div>
+        </div>
+        <div class="sheet-cursor" id="sheet-cursor" aria-hidden="true"></div>
+        <div class="sheet-status mono" id="sheet-status">przykladowy_arkusz.xlsx</div>
+      </div>
+      <!-- world 2: the paper -->
+      <div class="m-panel m-paper" id="m-paper">
+        <div class="guilloche" aria-hidden="true"></div>
+        <div class="p-head"><span class="p-title" data-i18n="m_title">E-FAKTURA</span><span class="p-sub mono">FA(3) · KSeF 2.0</span></div>
+        <div class="p-line"><span data-i18n="m_buyer">Nabywca</span><b>Firma Przykładowa sp. z o.o.</b></div>
+        <div class="p-line"><span>NIP</span><b>9876543210</b></div>
+        <div class="p-line"><span data-i18n="m_net">Netto</span><b>2 000,00 PLN</b></div>
+        <div class="p-line"><span>VAT 23%</span><b>460,00 PLN</b></div>
+        <div class="p-line"><span data-i18n="m_total">Razem</span><b>2 460,00 PLN</b></div>
+        <div class="stamp" id="m-stamp" data-i18n="m_stamp">PRZYJĘTO</div>
+      </div>
+      <!-- world 3: the portal -->
+      <div class="m-panel m-portal" id="m-portal" aria-hidden="true">
+        <div class="portal-slot"></div>
+        <div class="portal-name mono" data-i18n="m_portal">KSEF · MINISTERSTWO FINANSÓW</div>
+        <div class="portal-check mono" id="portal-check"><span data-i18n="m_accepted">przyjęto · nr KSeF</span><br><span id="portal-ksef">9876543210-20260830-A1B2C3D4E5-0123456789</span></div>
+      </div>
+      <p class="m-caption mono" id="m-caption" data-i18n="m_caption" aria-hidden="true">siatka staje się dokumentem</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FORMAT MARQUEE ================= -->
+<div class="marquee-wrap" aria-label="Obsługiwane formaty">
+  <div class="marquee" id="marquee">
+    <span>PL · <b>KSeF FA(3)</b></span>
+    <span>UE · <b>Peppol BIS</b></span>
+    <span>DE · <b>XRechnung</b></span>
+    <span>DE · <b>ZUGFeRD</b></span>
+    <span>FR · <b>Factur-X</b></span>
+    <span>HR · <b>e-Račun</b></span>
+    <span>RO · <b>CIUS-RO</b></span>
+    <span>MY · <b>MyInvois</b></span>
+    <span>SG · <b>InvoiceNow</b></span>
+    <span>IT · <b>FatturaPA</b></span>
+    <span><b>EN 16931</b> · core</span>
+  </div>
+</div>
+
+<!-- ================= TICKERS ================= -->
+<section class="tickerband" aria-label="Kolejne terminy obowiązków">
+  <div class="wrap tickers">
+    <div class="ticker" data-reveal>
+      <span class="ticker-label" data-i18n="tick_fr">Francja musi odbierać e-faktury za</span>
+      <span class="ticker-clock" id="tick-fr" data-deadline="2026-09-01T00:00:00+02:00">-</span>
+    </div>
+    <div class="ticker" data-reveal>
+      <span class="ticker-label" data-i18n="tick_pl">Kary za brak KSeF w Polsce od</span>
+      <span class="ticker-clock" id="tick-pl" data-deadline="2027-01-01T00:00:00+01:00">-</span>
+    </div>
+    <div class="ticker" data-reveal>
+      <span class="ticker-label" data-i18n="tick_de">Niemcy muszą wystawiać e-faktury za</span>
+      <span class="ticker-clock" id="tick-de" data-deadline="2027-01-01T00:00:00+01:00">-</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MANDATE WALL ================= -->
+<section class="section" id="mandates">
+  <div class="wrap wall-wrap">
+    <div class="waves" aria-hidden="true"></div>
+    <div class="sec-head">
+      <h2 data-reveal data-i18n-html="wall_h2">Fale obowiązków już spadły. <em>Kolejne są zaplanowane.</em></h2>
+      <p class="lede" data-reveal data-i18n="wall_lede">Dziesiątki krajów wymagają dziś ustrukturyzowanych e-faktur. Twój arkusz musi z nimi rozmawiać. Oto kalendarz, który naprawdę obowiązuje.</p>
+    </div>
+    <div class="wall" id="wall">
+      <div class="wall-head" aria-hidden="true"><span data-i18n="wall_h_country">Kraj</span><span data-i18n="wall_h_sys">System</span><span data-i18n="wall_h_status">Status</span><span class="mono" style="text-align:right" data-i18n="wall_h_firms">Firmy</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">PL</span><span data-i18n="w_pl">Polska</span></span><span class="w-sys">KSeF · FA(3)</span><span class="st st-live" data-i18n="w_pl_st">obowiązuje · kary od 2027</span><span class="w-pool">2,4 mln</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">HR</span><span data-i18n="w_hr">Chorwacja</span></span><span class="w-sys">e-Račun · fiskalizacja 2.0</span><span class="st st-live" data-i18n="w_hr_st">obowiązuje od 01/2026</span><span class="w-pool">200 tys.</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">RO</span><span data-i18n="w_ro">Rumunia</span></span><span class="w-sys">e-Factura · CIUS-RO</span><span class="st st-live" data-i18n="w_ro_st">obowiązuje · okres łaski skończony 07/2026</span><span class="w-pool">550 tys.</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">BE</span><span data-i18n="w_be">Belgia</span></span><span class="w-sys">Peppol BIS</span><span class="st st-live" data-i18n="w_be_st">obowiązuje od 01/2026</span><span class="w-pool">1,1 mln</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">IT</span><span data-i18n="w_it">Włochy</span></span><span class="w-sys">FatturaPA · SdI</span><span class="st st-live" data-i18n="w_it_st">obowiązuje od 2019</span><span class="w-pool">4,4 mln</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">MY</span><span data-i18n="w_my">Malezja</span></span><span class="w-sys">MyInvois</span><span class="st st-live" data-i18n="w_my_st">ostatnia fala 07/2026</span><span class="w-pool">1,1 mln</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">DE</span><span data-i18n="w_de">Niemcy</span></span><span class="w-sys">XRechnung / ZUGFeRD</span><span class="st st-next" data-i18n="w_de_st">odbiór: działa · wystawianie 2027/28</span><span class="w-pool">3,2 mln</span></div>
+      <div class="wall-row"><span class="w-country"><span class="w-code">FR</span><span data-i18n="w_fr">Francja</span></span><span class="w-sys">Factur-X · PDP</span><span class="st st-next" data-i18n="w_fr_st">odbiór: 09/2026 · wystawianie 2027</span><span class="w-pool">4,4 mln</span></div>
+    </div>
+    <p class="wall-note" data-reveal data-i18n="wall_note">Stan na 08/2026. Polska: rok przejściowy bez kar, mikrofirmy (do 10 tys. zł obrotu miesięcznie) dołączają w 2027. Sheetpost budujemy pod daty, które już obowiązują. Reszta to opcja, nie obietnica.</p>
+  </div>
+</section>
+
+<!-- ================= HOW ================= -->
+<section class="section" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-reveal data-i18n="how_kicker">Trzy kroki</p>
+      <h2 data-reveal data-i18n-html="how_h2">Połącz raz. <em>Wysyłaj zawsze.</em></h2>
+    </div>
+    <div class="steps">
+      <article class="step" data-reveal>
+        <p class="step-num mono">01</p>
+        <h3 data-i18n="how_1_h">Połącz</h3>
+        <p data-i18n="how_1_p">Podłącz plik Excel lub arkusz Google raz. Dane zostają u Ciebie, arkusz pozostaje źródłem prawdy.</p>
+        <div class="mini" data-mini="connect" aria-hidden="true">
+          <span class="mono" data-i18n="mini_file">arkusz_maj.xlsx</span>
+          <span class="m-arrow">-></span>
+          <span class="mono" data-i18n="mini_linked">połączono</span>
+        </div>
+      </article>
+      <article class="step" data-reveal>
+        <p class="step-num mono">02</p>
+        <h3 data-i18n="how_2_h">Zmapuj</h3>
+        <p data-i18n="how_2_p">AI rozpoznaje Twoje kolumny: nazwa, ilość, netto, VAT. Mapowanie zostaje zapamiętane przy kolejnej fakturze.</p>
+        <div class="mini" data-mini="map" aria-hidden="true">
+          <span class="mono" data-i18n="mini_col1">kol. A -> nazwa</span>
+          <span class="mono" data-i18n="mini_col2">kol. C -> netto</span>
+          <span class="mono" data-i18n="mini_col3">kol. D -> VAT</span>
+        </div>
+      </article>
+      <article class="step" data-reveal>
+        <p class="step-num mono">03</p>
+        <h3 data-i18n="how_3_h">Wyślij</h3>
+        <p data-i18n="how_3_p">Każdy wiersz walidujemy, zanim opuści arkusz. Urząd przyjmuje, Ty dostajesz UPO, my archiwizujemy na 10 lat.</p>
+        <div class="mini" data-mini="send" aria-hidden="true">
+          <span class="mono" data-i18n="mini_row1">wiersz 2: OK</span>
+          <span class="mono" data-i18n="mini_row2">wiersz 3: OK</span>
+          <span class="mono" data-i18n="mini_row3">wiersz 4: …</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LIVE DEMO ================= -->
+<section class="section" id="demo">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-reveal data-i18n="demo_kicker">Sprawdź na żywo</p>
+      <h2 data-reveal data-i18n-html="demo_h2">Nie wierz nam na słowo. <em>Wklej swoje wiersze.</em></h2>
+      <p class="lede" data-reveal data-i18n="demo_lede">To prawdziwy silnik walidacji FA(3), działający w Twojej przeglądarce. Pierwsza faktura bezpłatnie, potem zobaczysz, co daje konto.</p>
+    </div>
+
+    <div class="demo-stage">
+      <div class="demo-shell">
+        <div class="demo-bar" aria-label="Kroki demo">
+          <div class="dstep active" data-step="1"><span class="dn">1</span><span class="dtxt" data-i18n="dstep1">Wklej dane</span></div>
+          <div class="dstep" data-step="2"><span class="dn">2</span><span class="dtxt" data-i18n="dstep2">Mapowanie</span></div>
+          <div class="dstep" data-step="3"><span class="dn">3</span><span class="dtxt" data-i18n="dstep3">Walidacja</span></div>
+          <div class="dstep" data-step="4"><span class="dn">4</span><span class="dtxt" data-i18n="dstep4">Podgląd</span></div>
+          <div class="dstep" data-step="5"><span class="dn">5</span><span class="dtxt" data-i18n="dstep5">Wysyłka</span></div>
+        </div>
+
+        <div class="demo-body">
+          <!-- step 1 -->
+          <div class="dpane active" data-pane="1">
+            <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dz-hint">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+              <b data-i18n="dz_b">Upuść plik Excel (XLSX) lub CSV, albo kliknij i wklej wiersze</b>
+              <p class="hint" id="dz-hint" data-i18n="dz_hint">Skopiuj wiersze prosto z Excela (Ctrl+C), rozpoznamy kolumny automatycznie. Dane nie opuszczają Twojej przeglądarki.</p>
+            </div>
+            <div class="demo-inputrow">
+              <button class="btn btn-ghost btn-sm" type="button" id="btn-sample"><span data-i18n="btn_sample">Wstaw przykładowe wiersze</span></button>
+              <a class="btn btn-ghost btn-sm" href="assets/sample/arkusz-przyklad.xlsx" download><span data-i18n="btn_sample_dl">Pobierz przykładowy .xlsx</span></a>
+              <button class="btn btn-ghost btn-sm" type="button" id="btn-paste"><span data-i18n="btn_paste">Wklej ręcznie</span></button>
+              <input type="file" id="file-input" accept=".csv,.tsv,.txt,.xlsx,.xls" class="hp" aria-hidden="true" tabindex="-1">
+            </div>
+            <div class="demo-paste" id="paste-wrap" hidden>
+              <label class="sr-only" for="paste-area" data-i18n="paste_label">Wklej wiersze arkusza</label>
+              <textarea class="input" id="paste-area" placeholder="nazwa	ilość	netto	VAT
+Projekt logo	1	3200	23"></textarea>
+            </div>
+            <p class="demo-parsemsg" id="parse-msg" aria-live="polite"></p>
+            <div class="demo-nextrow">
+              <button class="btn btn-primary" type="button" id="btn-to-map" disabled><span data-i18n="btn_map">Mapuj kolumny</span></button>
+            </div>
+          </div>
+
+          <!-- step 2 -->
+          <div class="dpane" data-pane="2">
+            <div class="map-grid">
+              <div>
+                <h3 style="margin-bottom:14px" data-i18n="map_h">Sprawdź mapowanie kolumn</h3>
+                <div class="map-table" id="map-table"></div>
+              </div>
+              <div style="display:grid;gap:12px">
+                <div class="party-card">
+                  <h4 data-i18n="map_seller">Sprzedawca</h4>
+                  <div class="field"><label for="s-name" data-i18n="map_seller_name">Nazwa</label><input class="input" id="s-name" value="Studio Kowalska"></div>
+                  <div class="field"><label for="s-nip">NIP</label><input class="input mono" id="s-nip" inputmode="numeric" value="1234563218"><p class="hint" id="s-nip-hint"></p></div>
+                </div>
+                <div class="party-card">
+                  <h4 data-i18n="map_buyer">Nabywca</h4>
+                  <div class="field"><label for="b-name" data-i18n="map_buyer_name">Nazwa</label><input class="input" id="b-name" value="Firma Przykładowa sp. z o.o."></div>
+                  <div class="field"><label for="b-nip">NIP</label><input class="input mono" id="b-nip" inputmode="numeric" value="9876543210"><p class="hint" id="b-nip-hint"></p></div>
+                </div>
+              </div>
+            </div>
+            <div class="demo-nextrow">
+              <button class="btn btn-ghost" type="button" id="btn-back-1"><span data-i18n="btn_back">Wstecz</span></button>
+              <button class="btn btn-primary" type="button" id="btn-to-check"><span data-i18n="btn_validate">Waliduj</span></button>
+            </div>
+          </div>
+
+          <!-- step 3 -->
+          <div class="dpane" data-pane="3">
+            <h3 style="margin-bottom:14px" data-i18n="check_h">Walidacja przed wysyłką</h3>
+            <div class="checks" id="checks"></div>
+            <div class="demo-nextrow">
+              <button class="btn btn-ghost" type="button" id="btn-back-2"><span data-i18n="btn_back">Wstecz</span></button>
+              <button class="btn btn-primary" type="button" id="btn-to-preview" disabled><span data-i18n="btn_preview">Podejrzyj fakturę</span></button>
+            </div>
+          </div>
+
+          <!-- step 4 -->
+          <div class="dpane" data-pane="4">
+            <div class="prev-grid">
+              <div>
+                <div class="prev-tabs" role="tablist" aria-label="Widok faktury">
+                  <button class="ptab" role="tab" aria-selected="true" data-view="human" data-i18n="tab_human">Faktura</button>
+                  <button class="ptab" role="tab" aria-selected="false" data-view="xml">FA(3) XML</button>
+                </div>
+                <div id="view-human">
+                  <div class="invoice-card">
+                    <div class="inv-head"><span id="inv-no">FV/2026/08/114</span><span class="mono" id="inv-total">0,00 PLN</span></div>
+                    <div id="inv-rows"></div>
+                    <div class="inv-foot mono" id="inv-foot"></div>
+                  </div>
+                </div>
+                <div id="view-xml" hidden>
+                  <div class="xmlview"><pre class="xml" id="xml-out"></pre></div>
+                </div>
+              </div>
+              <div style="display:grid;gap:14px;align-content:start">
+                <p style="color:var(--fg);font-size:.95rem" data-i18n="prev_p">Po lewej to, co Ty widzisz. Po prawej to, co przeczyta urząd. Ten sam dokument, dwie postacie, generowane z Twoich wierszy.</p>
+                <ul class="plan-feats" style="color:var(--fg)">
+                  <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="prev_f1">Suma kontrolna NIP obu stron</span></li>
+                  <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="prev_f2">Stawki VAT zgodne z katalogiem PL</span></li>
+                  <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="prev_f3">Struktura pól wymaganych przez FA(3)</span></li>
+                </ul>
+              </div>
+            </div>
+            <div class="demo-nextrow">
+              <button class="btn btn-ghost" type="button" id="btn-back-3"><span data-i18n="btn_back">Wstecz</span></button>
+              <button class="btn btn-primary" type="button" id="btn-to-send"><span data-i18n="btn_send">Wyślij do KSeF (symulacja)</span></button>
+            </div>
+          </div>
+
+          <!-- step 5 -->
+          <div class="dpane" data-pane="5">
+            <h3 style="margin-bottom:14px" data-i18n="send_h">Filing: KSeF 2.0</h3>
+            <div class="sendlog mono" id="sendlog" aria-live="polite"></div>
+            <div class="upo" id="upo">
+              <div><span class="u-label" data-i18n="upo_label">NR KSEF</span><span class="u-id" id="upo-id"></span></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost btn-sm" type="button" id="btn-xml-dl"><span data-i18n="btn_xml">Pobierz XML</span></button>
+                <button class="btn btn-primary btn-sm" type="button" id="btn-again"><span data-i18n="btn_again">Jeszcze raz</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- the gate -->
+      <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h">
+        <div class="gate-card">
+          <button class="modal-close" id="gate-close" aria-label="Zamknij" data-i18n-aria="gate_close"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <span class="stamp" data-i18n="gate_stamp">STOP</span>
+          <h3 id="gate-h" data-i18n="gate_h">To była Twoja bezpłatna próba</h3>
+          <p data-i18n="gate_p">W aplikacji: faktury bez limitu, podłączanie .xlsx i Google Sheets, prawdziwa wysyłka, archiwum na 10 lat i wszystkie kraje w jednym kokpicie.</p>
+          <form class="gate-form" id="gate-form">
+            <input class="input mono" type="email" id="gate-email" required placeholder="twoj@email.pl" aria-label="E-mail">
+            <button class="btn btn-primary" type="submit" data-i18n="gate_btn">Odblokuj 3 testy</button>
+          </form>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <a class="btn btn-ghost btn-sm" href="#pricing"><span data-i18n="gate_pricing">Zobacz cennik</span></a>
+          </div>
+          <p class="modal-note" data-i18n="gate_note">Symulacja działa w całości lokalnie. Żadne dane nie opuszczają Twojego urządzenia.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="demo-note">
+      <span class="d-privacy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span data-i18n="demo_note1">100% po stronie przeglądarki</span></span>
+      <span class="d-privacy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/></svg><span data-i18n="demo_note2">Symulacja wysyłki, prawdziwa implementacja w aplikacji</span></span>
+      <span class="d-privacy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/></svg><span data-i18n="demo_note3">niezależne narzędzie — nie jest częścią KSeF ani MF</span></span>
+      <span class="demo-runs mono" id="demo-runs"></span>
+    </p>
+  </div>
+</section>
+
+<!-- ================= MORPH ================= -->
+<section class="section" id="morphsec">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-reveal data-i18n-html="morph_h2">Komputery czytają to. <em>Ty czytasz to.</em> Tłumaczymy w obie strony.</h2>
+    </div>
+    <div class="morph" id="morph" style="--split:52%">
+      <div class="morph-pane morph-left">
+        <p class="pane-tag mono" data-i18n="morph_l">co czyta urząd</p>
+        <pre class="xml" id="morph-xml"><span class="x-tag">&lt;Faktura</span> xmlns=<span class="x-val">"FA(3) · KSeF 2.0"</span><span class="x-tag">&gt;</span>
+  <span class="x-tag">&lt;Podmiot1&gt;</span>
+    <span class="x-tag">&lt;NIP&gt;</span><span class="x-val">1234563218</span><span class="x-tag">&lt;/NIP&gt;</span>
+  <span class="x-tag">&lt;/Podmiot1&gt;</span>
+  <span class="x-tag">&lt;Podmiot2&gt;</span>
+    <span class="x-tag">&lt;NIP&gt;</span><span class="x-val">9876543210</span><span class="x-tag">&lt;/NIP&gt;</span>
+  <span class="x-tag">&lt;/Podmiot2&gt;</span>
+  <span class="x-tag">&lt;Fa&gt;</span>
+    <span class="x-tag">&lt;P_2&gt;</span><span class="x-val">FV/2026/08/114</span><span class="x-tag">&lt;/P_2&gt;</span>
+    <span class="x-tag">&lt;P_15&gt;</span><span class="x-val">2460.00</span><span class="x-tag">&lt;/P_15&gt;</span>
+  <span class="x-tag">&lt;/Fa&gt;</span>
+<span class="x-tag">&lt;/Faktura&gt;</span></pre>
+      </div>
+      <div class="morph-pane morph-right">
+        <p class="pane-tag mono" data-i18n="morph_r">co widzisz Ty</p>
+        <div class="invoice-card">
+          <div class="inv-head"><span>FV/2026/08/114</span><span class="mono">2 460,00 zł</span></div>
+          <div class="inv-row"><span data-i18n="morph_i1">Web design, Przykładowa sp. z o.o.</span><b class="mono">1 200,00</b></div>
+          <div class="inv-row"><span data-i18n="morph_i2">SEO, abonament</span><b class="mono">800,00</b></div>
+          <div class="inv-row"><span>VAT 23%</span><b class="mono">460,00</b></div>
+          <div class="inv-foot mono" data-i18n="morph_foot">z pliku przykladowy_arkusz.xlsx · wiersze 2-3 · walidacja OK</div>
+        </div>
+      </div>
+      <div class="morph-handle" aria-hidden="true"></div>
+      <input class="morph-range" id="morph-range" type="range" min="20" max="80" value="52" aria-label="Podziel widok: XML i faktura">
+    </div>
+  </div>
+</section>
+
+<!-- ================= THE FOLD + GUARANTEE ================= -->
+<section class="paper-bridge" id="fold" aria-label="Gwarancja">
+  <div class="bridge-stage">
+    <div class="bridge-backdrop" aria-hidden="true"></div>
+    <div class="paper-sheet" id="fold-sheet">
+      <div class="sheet-edge" aria-hidden="true"></div>
+      <div class="guilloche" aria-hidden="true"></div>
+      <p class="fold-caption mono" data-i18n="fold_caption">dokument urzędowy</p>
+      <div class="fold-content">
+        <div>
+          <h2 data-i18n-html="fold_h2">Cena, której <em>nie podniesiemy</em>.</h2>
+          <p class="lede" data-i18n="fold_p">Każde narzędzie, od którego uciekasz, podniosło cenę po rejestracji. My nie możemy: cena fundatorska jest zapisana na fakturze i zostaje, dopóki trwa subskrypcja.</p>
+          <ul class="trust-list">
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span><b data-i18n="fold_t1b">Cena zablokowana</b> <span data-i18n="fold_t1">na piśmie, na fakturze</span></span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span><b data-i18n="fold_t2b">Anulowanie jednym kliknięciem</b> <span data-i18n="fold_t2">bez formularzy i rozmów retrakcyjnych</span></span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg><span><b data-i18n="fold_t3b">Eksport wszystkiego</b> <span data-i18n="fold_t3">otwarte formaty, zawsze Twoje</span></span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/></svg><span><b data-i18n="fold_t4b">Fallback na zawsze</b> <span data-i18n="fold_t4">faktury pozostają czytelne nawet bez nas</span></span></li>
+          </ul>
+        </div>
+        <div class="lockcard-scene" id="lockcard-scene">
+          <div class="lockcard" id="lockcard">
+            <span class="lockcard-brand">SHEETPOST · <span data-i18n="card_plan">PLAN FUNDATORSKI</span></span>
+            <span class="lockcard-seal" aria-hidden="true">LOCKED<br>2026</span>
+            <div class="lockcard-price"><span data-price data-eur="9" data-pln="39" data-ron="45">45</span> zł<span data-i18n="card_mo">/mies.</span></div>
+            <span class="lockcard-lock" data-i18n="card_lock">CENA ZABLOKOWANA · NA ZAWSZE</span>
+            <div class="lockcard-sheen" aria-hidden="true"></div>
+          </div>
+          <p class="locknote" data-i18n="card_note">bez gwiazdek. bez „cen intro”. tyle płacisz.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="paper-world">
+
+  <!-- ================= PRICING ================= -->
+  <section class="section" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-reveal data-i18n-html="pricing_h2">Cennik jak arkusz. <em>Bez ukrytych wierszy.</em></h2>
+        <div class="plans-toggle" role="group" aria-label="Waluta">
+          <button type="button" data-cur="pln" aria-pressed="true">PLN</button>
+          <button type="button" data-cur="eur" aria-pressed="false">EUR</button>
+          <button type="button" data-cur="ron" aria-pressed="false">RON</button>
+        </div>
+      </div>
+      <div class="plans">
+        <article class="plan" data-reveal>
+          <p class="plan-col"><span>A</span><span data-i18n="plan1_col">PODGLĄD</span></p>
+          <p class="plan-name" data-i18n="plan1_name">Za darmo</p>
+          <p class="plan-price"><span data-price data-eur="0" data-pln="0" data-ron="0">0</span> zł</p>
+          <p class="plan-desc" data-i18n="plan1_desc">Poznaj silnik walidacji na własnych wierszach.</p>
+          <ul class="plan-feats">
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f1">3 faktury / mies.</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f2">1 kraj</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f3">Pełna walidacja FA(3)</span></li>
+          </ul>
+          <a class="btn btn-ghost btn-block" href="#demo"><span data-i18n="plan1_cta">Wypróbuj</span></a>
+        </article>
+        <article class="plan plan-hot" data-reveal>
+          <span class="stamp" data-i18n="plan2_stamp">FUNDATORSKA</span>
+          <p class="plan-col"><span>B</span><span data-i18n="plan2_col">NAJPOPULARNIEJSZA</span></p>
+          <p class="plan-name" data-i18n="plan2_name">Solo</p>
+          <p class="plan-price"><span data-price data-eur="9" data-pln="39" data-ron="45">45</span> zł<span data-i18n="plan_mo">/mies.</span></p>
+          <p class="plan-desc" data-i18n="plan2_desc">Jedna firma, jeden kraj. Wszystko, czego potrzebujesz do KSeF.</p>
+          <ul class="plan-feats">
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f1">Faktury bez limitu</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f2">Prawdziwa wysyłka + statusy UPO</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f3">Archiwum na 10 lat</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f4">Cena zablokowana na zawsze</span></li>
+          </ul>
+          <a class="btn btn-primary btn-block" href="#waitlist"><span data-i18n="plan2_cta">Zablokuj cenę</span></a>
+        </article>
+        <article class="plan" data-reveal>
+          <p class="plan-col"><span>C</span><span>&nbsp;</span></p>
+          <p class="plan-name" data-i18n="plan3_name">Business</p>
+          <p class="plan-price"><span data-price data-eur="19" data-pln="79" data-ron="95">95</span> zł<span data-i18n="plan_mo">/mies.</span></p>
+          <p class="plan-desc" data-i18n="plan3_desc">Wiele firm i krajów w jednym kokpicie.</p>
+          <ul class="plan-feats">
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan3_f1">Wiele encji + profile VAT</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan3_f2">Skrzynka statusów i UPO</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan3_f3">Kolejne kraje bez zmiany konta</span></li>
+          </ul>
+          <a class="btn btn-ghost btn-block" href="#waitlist"><span data-i18n="plan_cta">Zapisz się</span></a>
+        </article>
+        <article class="plan" data-reveal>
+          <p class="plan-col"><span>D</span><span>&nbsp;</span></p>
+          <p class="plan-name" data-i18n="plan4_name">Księgowy</p>
+          <p class="plan-price"><span data-price data-eur="49" data-pln="199" data-ron="249">249</span> zł<span data-i18n="plan_mo">/mies.</span></p>
+          <p class="plan-desc" data-i18n="plan4_desc">Biuro rachunkowe? Obsłuż 25 klientów z jednego miejsca.</p>
+          <ul class="plan-feats">
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan4_f1">25 klientów w cenie</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan4_f2">Wysyłka hurtowa</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan4_f3">Panel partnera + prowizja 20-30%</span></li>
+          </ul>
+          <a class="btn btn-ghost btn-block" href="#partner"><span data-i18n="plan4_cta">Zostań partnerem</span></a>
+        </article>
+      </div>
+      <p class="pricing-note" data-i18n="pricing_note">Pierwszych 500 kont zatrzymuje cenę fundatorską na zawsze. To cała sztuczka.</p>
+    </div>
+  </section>
+
+  <!-- ================= PARTNER ================= -->
+  <section class="partner" id="partner">
+    <div class="wrap partner-grid">
+      <div>
+        <h2 data-i18n-html="partner_h2">Biura księgowe: <em>25 klientów</em> z jednego arkusza.</h2>
+        <p data-i18n="partner_p">Biura trzymają arkusze za wszystkich swoich klientów. Sheetpost zamienia je w gotowe KSeFy hurtowo, i płaci prowizję od każdego polecenia.</p>
+      </div>
+      <div>
+        <ul class="partner-points">
+          <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="partner_f1">Prowizja 20-30% od każdego płacącego klienta</span></li>
+          <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="partner_f2">Wysyłka hurtowa i panel partnera</span></li>
+          <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="partner_f3">Wspólne wsparcie wdrożeniowe: my szkolimy, Ty wdrażasz</span></li>
+        </ul>
+        <a class="btn btn-primary" style="margin-top:22px" href="mailto:partnerzy@sheetpost.app"><span data-i18n="partner_cta">Porozmawiajmy</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section class="section" id="faq">
+    <div class="wrap wrap-narrow">
+      <div class="sec-head">
+        <h2 data-reveal data-i18n="faq_h2">Proste odpowiedzi</h2>
+      </div>
+      <details class="faq-item">
+        <summary><span data-i18n="faq1_q">Jak wysłać fakturę do KSeF z Excela?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq1_a">Możesz użyć bezpłatnej Aplikacji Podatnika KSeF 2.0 od Ministerstwa Finansów, przy pojedynczych fakturach w zupełności wystarczy. Przy regularnej sprzedaży wklejasz w Sheetpost wiersze z Excela, AI mapuje kolumny, każda pozycja jest walidowana względem wymogów FA(3) i wysyłana oficjalnym API. Potwierdzenie UPO trafia do Twojej skrzynki, a faktura do archiwum.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq2_q">Czy muszę przestać używać Excela lub Google Sheets?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq2_a">Nie. To cała idea: arkusz pozostaje źródłem prawdy, a Sheetpost jest warstwą tłumaczenia między nim a systemem Ministerstwa Finansów.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq3_q">Co jeśli urząd odrzuci fakturę?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq3_a">Nie powinno się to zdarzyć: każdy wiersz jest sprawdzany względem aktualnych reguł krajowych przed wysyłką. Gdyby jednak doszło do odrzucenia, przetłumaczymy błąd na ludzki język, wskażemy komórkę do poprawy i wyślemy ponownie jednym kliknięciem.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq4_q">Czym jest FA(3) i czy muszę rozumieć XML?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq4_a">FA(3) to wzór faktury elektronicznej obowiązujący w KSeF 2.0. Nie musisz go znać: pracujesz na kolumnach, które znasz od lat, a my generujemy i walidujemy dokument urzędowy za Ciebie. Podgląd XML znajdziesz w każdej chwili, jeśli lubisz wiedzieć więcej.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq5_q">Czy cena naprawdę jest zablokowana na zawsze?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq5_a">Tak. Plan fundatorski zapisujemy wprost: cena, którą masz przy rejestracji, obowiązuje dopóki trwa Twoja subskrypcja. Anulujesz jednym kliknięciem, wszystko eksportujesz w otwartych formatach.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq6_q">Które kraje są obsługiwane na starcie?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq6_a">Startujemy z Polską (KSeF 2.0, FA(3)). Następnie Chorwacja i Rumunia (językowo bliskie, mandaty już żywe), potem Niemcy (XRechnung/ZUGFeRD), a dalej kraje Peppol. Jedno konto obejmuje każdy nowy format, gdy tylko się pojawi.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq7_q">Jak wygląda RODO i moje dane?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq7_a">Demo na tej stronie działa w 100% w Twojej przeglądarce, żadne dane stąd nie wychodzą. W aplikacji arkusz przetwarzamy wyłącznie w celu wygenerowania i wysłania faktury, poświadczenia szyfrujemy, a archiwum eksportujesz w otwartych formatach kiedy chcesz.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><span data-i18n="faq8_q">Czy jest wersja dla biur księgowych?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="faq-body"><p data-i18n="faq8_a">Tak, plan Księgowy obejmuje 25 klientów, wysyłkę hurtową i panel partnera z prowizją 20-30% od poleceń. Napisz na partnerzy@sheetpost.app.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= CTA ================= -->
+  <section class="section cta" id="waitlist">
+    <div class="wrap wrap-narrow">
+      <h2 data-reveal data-i18n-html="cta_h2">Twoja kolej, <em>urzędy</em>.</h2>
+      <p class="lede" data-reveal data-i18n="cta_p">Dołącz do planu fundatorskiego: 39 zł/mies. zablokowane na zawsze, dla pierwszych 500 arkuszy.</p>
+      <form class="waitlist" id="waitform" novalidate>
+        <input type="text" name="company" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="field">
+          <label class="sr-only" for="w-email" data-i18n="cta_email">E-mail</label>
+          <input class="input" type="email" id="w-email" name="email" required placeholder="twoj@email.pl" autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="sr-only" for="w-country">Kraj</label>
+          <select class="input" id="w-country" name="country">
+            <option value="PL" data-i18n="c_pl">Polska (KSeF)</option>
+            <option value="DE" data-i18n="c_de">Niemcy (XRechnung)</option>
+            <option value="FR" data-i18n="c_fr">Francja (Factur-X)</option>
+            <option value="HR" data-i18n="c_hr">Chorwacja (e-Račun)</option>
+            <option value="RO" data-i18n="c_ro">Rumunia (e-Factura)</option>
+            <option value="OTHER" data-i18n="c_other">Inny kraj</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit"><span data-i18n="cta_btn">Zablokuj moją cenę</span></button>
+      </form>
+      <div class="checkline waitlist-consent">
+        <input type="checkbox" id="w-consent" required>
+        <label for="w-consent" data-i18n="cta_consent">Zgadzam się na jeden e-mail startowy — tylko w tym celu. Zero newsletterów.</label>
+      </div>
+      <p class="wait-ok" id="wait-ok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="cta_ok">Jesteś na liście. Napiszemy raz, przy starcie.</span></p>
+      <p class="fineprint" data-i18n="cta_fine">anulowanie jednym kliknięciem. eksport wszystkiego. zawsze.</p>
+    </div>
+  </section>
+
+</div><!-- /paper-world -->
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Sheetpost<span class="brand-tld">.app</span></a>
+        <p class="footer-tag" data-i18n="foot_tag">siatka staje się dokumentem.</p>
+      </div>
+      <div>
+        <h4 data-i18n="foot_nav">Nawigacja</h4>
+        <div class="footer-links">
+          <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+          <a href="#how" data-i18n="nav_how">Jak to działa</a>
+          <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
+          <a href="#pricing" data-i18n="nav_pricing">Cennik</a>
+          <a href="#faq" data-i18n="nav_faq">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <h4 data-i18n="foot_legal">Prawne</h4>
+        <div class="footer-links">
+          <a href="privacy.html" data-i18n="foot_priv">Polityka prywatności</a>
+          <a href="terms.html" data-i18n="foot_terms">Regulamin</a>
+          <a href="cookies.html" data-i18n="foot_cookies">Ciasteczka</a>
+          <a href="mailto:kontakt@sheetpost.app">kontakt@sheetpost.app</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-fine" data-i18n="foot_imprint">Sheetpost jest niezależnym narzędziem dostawcy i nie jest powiązany z Ministerstwem Finansów ani z siecią Peppol. Wysyłka demo na tej stronie to symulacja. Zbudowane w Serbii, testowane na polskich fakturach.</p>
+      <p class="footer-fine" id="imprint">Sheetpost · [pełna nazwa właściciela], przedsiębiorca wpisany do APR (nr [___], PIB [___]) · [adres], Serbia · kontakt: kontakt@sheetpost.app</p>
+      <p class="footer-fine mono">© 2026 Sheetpost</p>
+    </div>
+  </div>
+</footer>
+
+<!-- paywall modal (email unlock) -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-h">
+  <div class="modal-card">
+    <button class="modal-close" id="modal-close" aria-label="Zamknij"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="modal-h" data-i18n="modal_h">Odblokuj 3 kolejne testy</h3>
+    <p data-i18n="modal_p">Zostaw e-mail: wyślemy kod na 3 dodatkowe uruchomienia demo i damy znać, kiedy aplikacja rusza.</p>
+    <form class="gate-form" id="modal-form">
+      <input class="input mono" type="email" id="modal-email" required placeholder="twoj@email.pl" aria-label="E-mail">
+      <button class="btn btn-primary" type="submit" data-i18n="modal_btn">Wyślij</button>
+    </form>
+    <p class="modal-note" data-i18n="modal_note">Jeden e-mail. Zero spamu. Dane zostają na Twoim urządzeniu do momentu wysyłki.</p>
+  </div>
+</div>
+
+<script src="assets/js/vendor/gsap.min.js" defer></script>
+<script src="assets/js/vendor/ScrollTrigger.min.js" defer></script>
+<script src="assets/js/vendor/SplitText.min.js" defer></script>
+<script src="assets/js/i18n.js" defer></script>
+<script src="assets/js/app.js" defer></script>
+<script src="assets/js/motion.js" defer></script>
+<script src="assets/js/demo.js" defer></script>
+</body>
+</html>

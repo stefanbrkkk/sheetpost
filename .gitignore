@@ -1,0 +1,9 @@
+qa/
+og-card.html
+logo-lockup-card.html
+assets/fonts/*-500-*.woff2
+assets/fonts/*-400-*.woff2
+assets/fonts/*-600-*.woff2
+assets/fonts/*-700-*.woff2
+assets/fonts/*-800-*.woff2
+.DS_Store

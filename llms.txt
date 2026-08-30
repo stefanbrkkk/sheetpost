@@ -1,0 +1,19 @@
+# Sheetpost
+
+> Sheetpost turns spreadsheets into government-compliant e-invoices. Built for spreadsheet-run businesses hit by mandatory e-invoicing (Poland KSeF 2.0 first).
+
+Sheetpost is a web tool by an independent vendor. Users keep their Excel or Google Sheets as the source of truth; Sheetpost maps the columns with AI, validates every row against the national e-invoice format (Poland: FA(3), KSeF 2.0), files through official government APIs, tracks acceptance (UPO receipts) and archives invoices for 10 years. Positioning: sell the cockpit (validation, no-rejections, archive, multi-country roadmap), never plain "sending" (incumbents bundle that free).
+
+## Key facts
+- Launch market: Poland (KSeF 2.0, FA(3)); live for most businesses since Apr 1 2026; penalties from Jan 1 2027; micro-firms (≤10k PLN monthly sales) join 2027
+- Roadmap: Croatia + Romania → Germany (XRechnung/ZUGFeRD, issue 2027/28) → Peppol countries → France
+- Pricing (price-locked founder plan): Free 0 (3 invoices/mo) · Solo 39 PLN/€9 per month · Business 79 PLN/€19 · Accountant 199 PLN/€49 (25 clients, 20-30% rev-share)
+- Trust package: price locked in writing, one-click cancel, full data export in open formats, perpetual fallback
+- On-page demo: real FA(3) validation engine in the browser (paste rows or upload .xlsx), one free run, then email-gated
+- Independent vendor tool; not affiliated with the Polish Ministry of Finance or Peppol
+
+## Pages
+- [Home](https://sheetpost.app/): product, live demo, mandate calendar, pricing, FAQ
+- [Privacy](https://sheetpost.app/privacy.html): demo is 100% client-side; no tracking cookies
+- [Terms](https://sheetpost.app/terms.html): vendor-not-issuer, simulation disclaimer, subscription terms
+- [Cookies](https://sheetpost.app/cookies.html): localStorage keys only

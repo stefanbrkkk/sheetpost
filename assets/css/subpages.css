@@ -1,0 +1,30 @@
+/* ============================================================
+   SHEETPOST V2 — subpages (privacy / terms / cookies / 404)
+   Shared so pages can ship a strict CSP (no inline styles).
+   ============================================================ */
+
+.legal { padding: 140px 0 90px; }
+.legal h1 { margin-bottom: 8px; }
+.legal .up { font-family: var(--font-m); font-size: .78rem; color: var(--fg-lo); margin-bottom: 40px; display: inline-block; }
+.legal h2 { font-size: 1.3rem; margin: 34px 0 10px; }
+.legal p, .legal li { color: var(--fg); font-size: .96rem; max-width: 70ch; }
+.legal ul { padding-left: 20px; margin: 10px 0; }
+.legal .mono { font-size: .85rem; color: var(--acc); }
+.legal table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .88rem; }
+.legal td, .legal th { text-align: left; padding: 9px 12px; border: 1px solid var(--line); color: var(--fg); }
+.legal th { font-family: var(--font-m); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-lo); }
+
+/* document language toggle (PL/EN) */
+.doc-langs { display: flex; gap: 8px; margin-bottom: 30px; }
+.doc-langs button { font-family: var(--font-m); font-size: .75rem; padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
+.doc-langs button[aria-pressed="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
+
+.en-txt { display: none; }
+html[data-doclang="en"] .pl-txt { display: none; }
+html[data-doclang="en"] .en-txt { display: block; }
+
+/* 404 */
+.err404 { display: grid; place-items: center; min-height: 100dvh; text-align: center; padding: 24px; }
+.err404 .code { font-family: var(--font-m); font-size: clamp(4rem, 14vw, 9rem); font-weight: 700; color: var(--acc); letter-spacing: -0.04em; line-height: 1; }
+.err404 h1 { font-size: 1.4rem; }
+.err404 p { color: var(--fg-lo); margin: 14px 0 28px; }

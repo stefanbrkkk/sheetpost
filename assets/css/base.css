@@ -1,0 +1,156 @@
+/* ============================================================
+   SHEETPOST V2 — base: reset, typography, utilities, a11y
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+  overflow-x: clip;
+}
+
+/* anchored sections clear the fixed nav */
+[id] { scroll-margin-top: 84px; }
+
+body {
+  background: var(--bg-0);
+  color: var(--fg);
+  font-family: var(--font-b);
+  font-size: var(--fs-body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+img, svg, video, canvas { display: block; max-width: 100%; }
+input, button, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+a { color: var(--acc); text-decoration: none; }
+a:hover { color: var(--acc-bright); }
+p a, li a { text-decoration: underline; text-underline-offset: 3px; }
+
+h1, h2, h3 {
+  font-family: var(--font-d);
+  color: var(--fg-hi);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+h1 { font-size: var(--fs-h1); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); letter-spacing: -0.01em; line-height: 1.25; }
+h1 em, h2 em { font-style: normal; color: var(--acc); }
+
+/* mono data */
+.mono {
+  font-family: var(--font-m);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+::selection { background: var(--acc); color: var(--acc-ink); }
+
+/* focus */
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.paper-world :focus-visible, .fold :focus-visible { outline-color: var(--p-acc); }
+
+/* skip link */
+.skip {
+  position: fixed; top: -48px; left: 16px; z-index: calc(var(--z-modal) + 1);
+  background: var(--acc); color: var(--acc-ink);
+  padding: 10px 16px; border-radius: var(--r-in);
+  font-weight: 600; transition: top var(--d2) var(--e-out);
+}
+.skip:focus-visible { top: 12px; }
+
+/* layout helpers */
+.wrap { max-width: var(--wrap); margin-inline: auto; padding-inline: var(--gutter); }
+.wrap-narrow { max-width: var(--wrap-narrow); }
+.section { padding-block: var(--sec-pad); position: relative; }
+.section + .section { padding-top: 0; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* film grain — fixed, pointer-none, one layer over everything */
+.grain {
+  position: fixed; inset: -50%; z-index: var(--z-grain);
+  pointer-events: none; opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  animation: grain-shift 9s steps(6) infinite;
+}
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(6%, -4%); }
+}
+
+/* panel = gradient hairline border on dark (the expensive border trick) */
+.panel {
+  border: 1px solid transparent;
+  border-radius: var(--r-panel);
+  background:
+    linear-gradient(var(--bg-1), var(--bg-1)) padding-box,
+    var(--line-grad) border-box;
+}
+.panel::before {
+  content: "";
+  position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(206,244,220,.32), transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* reveal system (IntersectionObserver adds .in) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity var(--d3) var(--e-out), transform var(--d3) var(--e-out);
+  transition-delay: calc(var(--rv, 0) * 70ms);
+}
+[data-reveal].in { opacity: 1; transform: none; }
+
+/* headline line-mask reveal (JS wraps lines in .lm > .lm-i) */
+.lm { display: block; overflow: hidden; padding-block: 0.06em; }
+.lm-i { display: block; transform: translateY(115%); }
+.in .lm-i, .lm-ready.in .lm-i, html.no-anim .lm-i {
+  transform: none;
+  transition: transform 0.9s var(--e-out);
+  transition-delay: calc(var(--lm, 0) * 90ms);
+}
+
+/* language switch flash guard: prevents half-translated jank */
+html.lang-swap [data-i18n] { transition: opacity 120ms ease; }
+html.lang-swap [data-i18n]:not(.swapped) { opacity: 0; }
+
+/* scrollbar (webkit, subtle) */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 99px; border: 2px solid var(--bg-0); }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+
+/* reduced motion: the kill-switch */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+  .lm-i { transform: none; }
+  .grain { animation: none; }
+}
+
+/* no-js fallback */
+html.no-js [data-reveal] { opacity: 1; transform: none; }
+html.no-js .lm-i { transform: none; }
