@@ -1415,6 +1415,47 @@ try {
     check('the header stays legible through the world flip, from frame zero',
       flipFlash.length === 0, flipFlash.join('\n'));
 
+    /* Hover is a state, and it was never measured. Three separate rules
+       repainted text on hover into something unreadable: the document world's
+       link hover repainted the primary CTA's label onto its own accent fill,
+       and the currency chip's hover painted its label the same colour as its
+       background, erasing it. Hover every control and measure what happens. */
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+    const hoverBad = [];
+    const hoverables = await page.$$('a[href], button:not([disabled])');
+    for (const h of hoverables.slice(0, 70)) {
+      const visible = await h.evaluate((e) => e.offsetParent !== null && e.getBoundingClientRect().width > 0);
+      if (!visible) continue;
+      try { await h.hover({ timeout: 1200 }); } catch (e) { continue; }
+      await page.waitForTimeout(45);
+      const bad = await h.evaluate((el) => {
+        const parse = (c) => { const m = (c || '').match(/[\d.]+/g); return m ? { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] } : null; };
+        const lumOf = ({ r, g, b }) => { const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+        const bgOf = (e0) => {
+          const st = []; let e = e0;
+          while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { st.push(c); if (c.a === 1) break; } e = e.parentElement; }
+          let o = { r: 8, g: 11, b: 9 };
+          for (let i = st.length - 1; i >= 0; i--) { const c = st[i]; o = { r: c.a * c.r + (1 - c.a) * o.r, g: c.a * c.g + (1 - c.a) * o.g, b: c.a * c.b + (1 - c.a) * o.b }; }
+          return o;
+        };
+        const txt = el.textContent.trim();
+        if (txt.length < 2) return null;
+        const cs = getComputedStyle(el);
+        const size = parseFloat(cs.fontSize);
+        const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+        const a = lumOf(parse(cs.color)), b = lumOf(bgOf(el));
+        const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        const need = large ? 3 : 4.5;
+        return ratio < need
+          ? `${el.tagName}.${(el.className || '').toString().split(' ')[0]} ${ratio.toFixed(2)} < ${need} "${txt.slice(0, 26)}"`
+          : null;
+      });
+      if (bad) hoverBad.push(bad);
+    }
+    check('every control stays legible while hovered',
+      hoverBad.length === 0, [...new Set(hoverBad)].join('\n'));
+
     /* Overlays are their own worlds and the page-level sweep never sees them:
        the gate is `hidden` until it is needed, so nothing inside it was ever
        measured. Its stamp sat at 3.9:1. */

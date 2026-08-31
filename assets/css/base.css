@@ -34,7 +34,12 @@ img, svg, video, canvas { display: block; max-width: 100%; }
 input, button, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
 a { color: var(--acc); text-decoration: none; }
-a:hover { color: var(--acc-bright); }
+/* Not buttons. A .btn is an <a>, and `a:hover` at (0,1,1) out-specifies
+   `.btn-primary { color: var(--acc-ink) }` at (0,1,0), so hovering the site's
+   primary call to action painted its label the accent colour on top of the
+   accent fill: 1.02:1, an invisible button label, on the most important
+   control on the page. */
+a:not(.btn):hover { color: var(--acc-bright); }
 p a, li a { text-decoration: underline; text-underline-offset: 3px; }
 
 h1, h2, h3 {

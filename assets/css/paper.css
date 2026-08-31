@@ -144,7 +144,11 @@
 .paper-world .lede { color: var(--p-fg); }
 .paper-world .kicker { color: var(--p-acc); }
 .paper-world a { color: var(--p-acc); }
-.paper-world a:hover { color: var(--p-ink); }
+/* Buttons are excluded on purpose. A .btn is an <a> here, so an unscoped
+   link hover repainted the primary CTA's label in the ink colour on top of
+   the accent fill, which is 1.4:1: hovering the main paid button made its
+   label almost disappear. */
+.paper-world a:not(.btn):hover { color: var(--p-ink); }
 
 /* ================= GUARANTEE ================= */
 .trust-list { list-style: none; padding: 0; margin-top: 26px; display: grid; gap: 14px; }
@@ -277,10 +281,16 @@
 .plan-hot {
   background: var(--p-ink);
   border-color: var(--p-ink);
-  transform: translateY(-14px);
+  /* The lift is a margin, not a transform, because the reveal system owns
+     transform on this element: `[data-reveal].in { transform: none }` is
+     (0,2,0) and out-specified `transform: translateY(-14px)` at (0,1,0), so
+     the featured plan sat flush with its neighbours and then jumped 18px on
+     hover. A negative margin also makes the card taller than the others,
+     which is what "featured" should look like anyway. */
+  margin-top: -14px;
   box-shadow: 0 26px 54px -30px rgba(20, 33, 26, 0.6);
 }
-.plan-hot:hover { transform: translateY(-18px); box-shadow: 0 32px 64px -30px rgba(20, 33, 26, 0.7); }
+.plan-hot:hover { transform: translateY(-4px); box-shadow: 0 32px 64px -30px rgba(20, 33, 26, 0.7); }
 .plan-hot .plan-name, .plan-hot .plan-price { color: var(--p-bg); }
 /* the unit sits on the dark card too: --p-lo is unreadable there */
 .plan-hot .plan-price .pu { color: rgba(237, 238, 228, .78); }
@@ -351,7 +361,9 @@
 .paper-world .field label { color: var(--p-ink); }
 .paper-world .checkline { color: var(--p-lo); }
 .paper-world .checkline input { accent-color: var(--p-acc); }
-.paper-world .plans-toggle button:hover { color: var(--p-ink); }
+/* The selected chip is ink on ink: it already has `background: var(--p-ink)`,
+   so painting its label --p-ink on hover made the label vanish entirely. */
+.paper-world .plans-toggle button:not([aria-pressed="true"]):hover { color: var(--p-ink); }
 .paper-world .faq-item { background: var(--p-panel); border-color: var(--p-line); }
 .paper-world .faq-item summary { color: var(--p-ink); }
 .paper-world .faq-item summary:hover { background: var(--p-bg-2); }
