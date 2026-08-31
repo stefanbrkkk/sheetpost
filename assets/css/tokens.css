@@ -16,6 +16,9 @@
 
   --line: rgba(206, 244, 220, 0.07);
   --line-hi: rgba(206, 244, 220, 0.18);
+  /* UI component boundaries need 3:1 against their background (WCAG 1.4.11),
+     which a hairline at 0.18 alpha does not reach */
+  --ctl-line: rgba(206, 244, 220, 0.42);
   --line-grad: linear-gradient(180deg, rgba(206,244,220,.16), rgba(206,244,220,.02));
 
   --fg-hi: #EEF4ED;
@@ -31,6 +34,7 @@
   --seal: #C8452F;               /* stamps + errors only */
   --seal-bright: #E4644E;
   --warn: #D9A13B;
+  --warn-bright: #F0C070;
 
   /* ---- paper world (the single light act) ---- */
   --p-bg: #EDEEE4;               /* banknote paper, green cast */
@@ -41,17 +45,19 @@
   --p-lo: #5F6A58;
   --p-line: rgba(20, 33, 26, 0.16);
   --p-line-hi: rgba(20, 33, 26, 0.32);
+  --p-ctl-line: rgba(20, 33, 26, 0.48);
   --p-acc: #157A48;
   --p-acc-dim: rgba(21, 122, 72, 0.12);
   --p-seal: #B23B28;
+  --p-seal-deep: #0E5433;   /* seals and micro-type on paper: 7:1 on --p-bg */
 
   /* ---- type ---- */
   --font-d: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
   --font-b: 'Figtree', 'Segoe UI', sans-serif;
   --font-m: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
-  --fs-h1: clamp(2.5rem, 5.6vw, 4.6rem);
-  --fs-h2: clamp(1.9rem, 3.6vw, 3rem);
+  --fs-h1: clamp(2.4rem, 5.4vw, 4.6rem);
+  --fs-h2: clamp(1.85rem, 3.6vw, 3rem);
   --fs-h3: clamp(1.15rem, 1.6vw, 1.35rem);
   --fs-body: 1.0625rem;
   --fs-small: 0.9rem;
@@ -72,16 +78,50 @@
   --r-panel: 22px;
   --r-pill: 999px;
 
+  /* ---- space scale (use these, not magic numbers) ---- */
+  --s1: 6px;
+  --s2: 10px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 36px;
+  --s6: 56px;
+  --s7: 84px;
+
+  /* ---- elevation ---- */
+  --el-1: 0 2px 8px -2px rgba(0, 0, 0, 0.5);
+  --el-2: 0 14px 34px -18px rgba(0, 0, 0, 0.75);
+  --el-3: 0 30px 80px -30px rgba(0, 0, 0, 0.6);
+
   /* ---- layout ---- */
   --wrap: 1240px;
   --wrap-narrow: 780px;
   --gutter: clamp(20px, 5vw, 48px);
-  --sec-pad: clamp(96px, 11vw, 160px);
+  --sec-pad: clamp(84px, 10vw, 148px);
+  --nav-h: 68px;
+  --nav-h-scrolled: 60px;
 
-  /* ---- z scale: 0 content / 10 sticky / 60 nav / 90 menu / 120 modal / 200 grain ---- */
+  /* ---- z scale: 0 content / 10 sticky / 60 nav / 70 progress / 90 menu / 120 modal / 200 grain ---- */
   --z-sticky: 10;
   --z-nav: 60;
+  --z-progress: 70;
   --z-menu: 90;
   --z-modal: 120;
   --z-grain: 200;
+}
+
+/* ------------------------------------------------------------
+   The nav rides both worlds. .nav--paper flips its palette so
+   the header stays legible once the document world takes over.
+   ------------------------------------------------------------ */
+.nav--paper {
+  --fg-hi: var(--p-ink);
+  --fg: #3D4A41;
+  --fg-lo: #5F6A58;
+  --fg-faint: #6E7968;
+  --line: rgba(20, 33, 26, 0.12);
+  --line-hi: rgba(20, 33, 26, 0.26);
+  --acc: var(--p-acc);
+  --acc-bright: #0F5E36;
+  --acc-dim: rgba(21, 122, 72, 0.12);
+  --acc-ink: #F2F5EC;
 }

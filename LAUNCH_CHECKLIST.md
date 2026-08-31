@@ -20,14 +20,16 @@ Rule of the house: **the validation gate comes before any spend beyond the domai
 - [x] **Real .xlsx import** in the demo (drop the actual Excel file; SheetJS loads on demand), sample workbook downloadable from the page
 - [x] Deploy configs: strict Content-Security-Policy + security headers (`_headers`), pretty URLs (`_redirects`) — no inline scripts/styles on shipped pages
 - [x] Launch kit (`launch-kit/`): PL Mom-Test interview script, partner outreach emails (PL/EN), 5 video scripts + shorts plan, PH/FB/LinkedIn/directory copy, the single waitlist email
-- [x] QA: 38/38 headless-Chrome e2e checks passed (incl. axe a11y: 0 critical/serious; overflow sweep 320-1920px; XML field-level correctness; invalid-NIP negative path) (console clean desktop/mobile/reduced-motion, full demo flow, gate, i18n, currency, menu, zero overflow at 390/1024/1440 px, WCAG AA contrast samples, touch targets, fonts verified)
+- [x] **Scroll-driven device sequence** (`#rig-sec`): a laptop opens, the sheet is scanned, columns wire themselves to FA(3) fields, the checks tick, the document is stamped and a phone slides in with the KSeF receipt. Four beats driven by scroll progress, so scrubbing backwards rewinds it; collapses to its final frame under reduced motion or without GSAP.
+- [x] **Committed quality gates** you can run yourself: `npm test` = eslint (zero warnings) + 29 static checks + 207 browser assertions, covering the full demo flow, parser edge cases, all five locales, a 13-width responsive sweep, WCAG AA contrast with proper alpha compositing, focus management, reduced-motion and no-GSAP fallbacks, and a console sweep that fails on any error, warning or failed request
 - [x] Budget: hosting $0 (static), fonts/libs self-hosted, no tracking cookies
 
 ## B. Your launch steps (in order)
 
 1. **[ ] Domain — ~$12–15/yr.** `sheetpost.app` showed no DNS records (likely free); `sheetpost.com` is taken; `sheetpost.io` also looks free. Verify at a registrar and buy. Update the canonical/OG/sitemap URLs in the files if you pick anything else (find `sheetpost.app`).
 2. **[ ] Deploy — $0.** Cloudflare Pages: create account → "Upload assets" (drag the folder or upload `sheetpost-v2.zip`) → add custom domain after DNS. No build command, output dir = root. `_headers` + `_redirects` are picked up automatically (strict CSP is already configured; if you set `FORM_ENDPOINT` to Formspree or similar, add its host to `connect-src` in `_headers`).
-3. **[ ] Waitlist endpoint — $0.** Create a Formspree (free tier) form; paste the URL into `assets/js/app.js` → `FORM_ENDPOINT`. Until then signups land in visitors' localStorage only (they still see the success stamp).
+3. **[ ] Waitlist endpoint — $0.** Create a Formspree (free tier) form; paste the URL into `assets/js/config.js` → `formEndpoint`, then add its host to `connect-src` in `_headers`. Until then signups land in visitors' localStorage only (they still see the success state).
+3b. **[ ] Legal identity — the one hard blocker.** Fill `legalName`, `registryNo`, `taxId` and `address` in `assets/js/config.js`. Until they are set, the footer imprint and the controller sentence in the privacy policy are omitted rather than printed with placeholders. `npm run test:launch` fails while they are empty.
 4. **[ ] Analytics — $0, optional.** Cloudflare Web Analytics (cookie-free, fits the privacy page). Do NOT add cookie-based analytics — the cookies page promises none.
 5. **[ ] Support email — $0.** Something like `kontakt@sheetpost.app` via a free tier (Zoho Mail / Cloudflare Email Routing forwarding to your inbox).
 6. **[ ] Legal pass — recommended.** Privacy/terms are solid templates written for this exact setup (vendor-not-issuer, demo local-only, MoR for payments). Have a lawyer glance at them before you charge money. Note on the site: Serbian sole trader selling EU-wide via a merchant-of-record is the researched path (Polar.sh / Lemon Squeezy both accept Serbian sellers; Stripe does not).
@@ -55,8 +57,24 @@ Rule of the house: **the validation gate comes before any spend beyond the domai
 
 ## E. Editing notes
 
-- Copy (non-PL): `assets/js/i18n.js` (5 dicts). PL static copy: `index.html` + `pl` dict.
-- Prices: search `data-pln` / `data-eur` in `index.html`.
-- Mandate wall rows: plain HTML in `index.html` (`#wall`); tickers: `data-deadline` attributes.
+See **[HANDOFF.md](HANDOFF.md)** for the full picture. The short version:
+
+- Everything you must configure to go live: `assets/js/config.js`.
+- Copy (non-PL): `assets/js/i18n.js` (5 dicts, one key set). PL static copy lives
+  in `index.html` **and** in the `pl` dict, and `npm run check` fails if they drift.
+- Prices: `data-pln` / `data-eur` / `data-ron` in `index.html`, mirrored in the
+  JSON-LD offers and in any price mentioned in prose (`hero_sub_strong`, `cta_p`).
+- Mandate wall rows: plain HTML in `index.html` (`#wall`) with statuses and
+  market sizes in the dictionary; tickers: `data-deadline` attributes.
+- Run `npm test` before every deploy.
+
+## F. Facts with a shelf life
+
+Re-check these before launch and each quarter; they are dated claims:
+
+- the three countdown deadlines (`data-deadline` in `index.html`)
+- every mandate-wall status and market size (`w_*_st`, `w_*_pool`)
+- the "Stan na 08/2026" note under the wall (`wall_note`)
+- `.well-known/security.txt` → `Expires`
 - Demo free-run policy: `assets/js/demo.js` (`sp_runs`, email unlock = 3 bonus).
 - Regenerate OG after copy changes: serve folder over HTTP, open `og-card.html`, screenshot at 1200×630.

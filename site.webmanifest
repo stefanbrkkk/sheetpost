@@ -1,13 +1,38 @@
 {
   "name": "Sheetpost",
   "short_name": "Sheetpost",
+  "lang": "pl",
+  "dir": "ltr",
+  "id": "/",
+  "scope": "/",
+  "start_url": "/",
   "description": "Faktury z Excela zgodne z KSeF 2.0. Walidacja przed wysyłką, archiwum na 10 lat.",
   "icons": [
-    { "src": "assets/img/brand/logo-mark-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/img/brand/logo-mark-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "assets/img/brand/logo-mark-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/img/brand/logo-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/img/brand/logo-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "theme_color": "#080B09",
   "background_color": "#080B09",
   "display": "browser",
-  "start_url": "/"
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ]
 }

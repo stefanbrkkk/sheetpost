@@ -1,0 +1,21 @@
+{
+  "name": "sheetpost-site",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Sheetpost marketing site — static, no build step. The scripts here are the quality gates, not a bundler.",
+  "type": "module",
+  "scripts": {
+    "serve": "http-server . -p 8123 -c-1 --silent",
+    "lint": "eslint assets/js --no-config-lookup -c eslint.config.mjs",
+    "check": "node tests/checks.mjs",
+    "e2e": "node tests/e2e.mjs",
+    "test": "npm run lint && npm run check && npm run e2e",
+    "check:launch": "node tests/checks.mjs --launch",
+    "test:launch": "npm run lint && npm run check:launch && npm run e2e"
+  },
+  "devDependencies": {
+    "eslint": "^10.1.0",
+    "http-server": "^14.1.1",
+    "playwright": "^1.56.1"
+  }
+}

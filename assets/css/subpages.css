@@ -5,7 +5,8 @@
 
 .legal { padding: 140px 0 90px; }
 .legal h1 { margin-bottom: 8px; }
-.legal .up { font-family: var(--font-m); font-size: .78rem; color: var(--fg-lo); margin-bottom: 40px; display: inline-block; }
+.legal .up { font-family: var(--font-m); font-size: .78rem; color: var(--fg-lo); margin-bottom: 40px; }
+.legal a.up { display: inline-block; }
 .legal h2 { font-size: 1.3rem; margin: 34px 0 10px; }
 .legal p, .legal li { color: var(--fg); font-size: .96rem; max-width: 70ch; }
 .legal ul { padding-left: 20px; margin: 10px 0; }
@@ -19,6 +20,8 @@
 .doc-langs button { font-family: var(--font-m); font-size: .75rem; padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
 .doc-langs button[aria-pressed="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
 
+/* Nothing else in this file sets `display` on a .up element, so these two
+   rules are the only things deciding which language is on screen. */
 .en-txt { display: none; }
 html[data-doclang="en"] .pl-txt { display: none; }
 html[data-doclang="en"] .en-txt { display: block; }

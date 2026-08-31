@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Regulamin — Sheetpost</title>
+<title>Regulamin · Sheetpost</title>
 <meta name="description" content="Zasady korzystania ze Sheetpost: demo, subskrypcja, gwarancja ceny, anulowanie.">
 <meta name="robots" content="noindex, follow">
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
@@ -12,6 +12,10 @@
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/components.css">
 <link rel="stylesheet" href="assets/css/subpages.css">
+<!-- render-blocking on purpose: picks the document language before first paint -->
+<script src="assets/js/doclang-boot.js"></script>
+<meta name="sp-title-pl" content="Regulamin · Sheetpost">
+<meta name="sp-title-en" content="Terms of service · Sheetpost">
 </head>
 <body>
 <main class="legal wrap wrap-narrow">
@@ -21,7 +25,7 @@
   <p class="up mono pl-txt">ostatnia aktualizacja: 30.08.2026</p>
   <p class="up mono en-txt">last updated: 2026-08-30</p>
 
-  <div class="doc-langs" role="group" aria-label="Język dokumentu">
+  <div class="doc-langs" role="group" aria-label="Język dokumentu / Document language">
     <button type="button" data-doclang="pl" aria-pressed="true">PL</button>
     <button type="button" data-doclang="en" aria-pressed="false">EN</button>
   </div>
@@ -34,7 +38,7 @@
     <p>Silnik walidacji dostępny na tej stronie to wersja demonstracyjna działająca lokalnie w przeglądarce. Wysyłka w demo jest <b>symulacją</b> i nie skutkuje złożeniem dokumentu w żadnym systemie urzędowym. Wygenerowane pliki XML służą wyłącznie zapoznaniu się z formatem.</p>
 
     <h2>3. Subskrypcja</h2>
-    <p>Pełna aplikacja działa w modelu subskrypcyjnym (plan Free, Solo, Business, Księgowy). Opłaty nalicza i rozlicza operator płatności (merchant of record), który wystawia Ci fakturę za usługę.</p>
+    <p>Pełna aplikacja działa w modelu subskrypcyjnym (plan Za darmo, Solo, Business, Księgowy). Opłaty nalicza i rozlicza operator płatności (merchant of record), który wystawia Ci fakturę za usługę.</p>
 
     <h2>4. Gwarancja ceny</h2>
     <p>Plan fundatorski: cena aktywna w dniu rejestracji konta obowiązuje przez cały czas trwania subskrypcji. Nie obejmuje zmian zakresu planu ani dobrowolnej migracji do innego planu.</p>
@@ -79,5 +83,7 @@
   </div>
 </main>
 <script src="assets/js/doclang.js" defer></script>
+<script src="assets/js/config.js" defer></script>
+<script src="assets/js/imprint.js" defer></script>
 </body>
 </html>

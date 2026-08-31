@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://sheetpost.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://sheetpost.app/privacy.html</loc><priority>0.3</priority></url>
-  <url><loc>https://sheetpost.app/terms.html</loc><priority>0.3</priority></url>
-  <url><loc>https://sheetpost.app/cookies.html</loc><priority>0.3</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://sheetpost.app/</loc>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://sheetpost.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sheetpost.app/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://sheetpost.app/?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="hr" href="https://sheetpost.app/?lang=hr"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://sheetpost.app/?lang=ro"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://sheetpost.app/"/>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url><loc>https://sheetpost.app/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://sheetpost.app/terms.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://sheetpost.app/cookies.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

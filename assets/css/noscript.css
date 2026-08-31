@@ -1,0 +1,27 @@
+/* ============================================================
+   SHEETPOST — the no-JS end state.
+   Loaded through <noscript><link>, never inline, so the shipped
+   Content-Security-Policy can stay strict (no 'unsafe-inline').
+   ============================================================ */
+.m-sheet { opacity: 0 !important; }
+.m-paper, .m-portal { opacity: 1 !important; pointer-events: auto; }
+.m-paper .stamp { opacity: 1 !important; transform: rotate(-7deg); }
+.portal-check { opacity: 1 !important; transform: none !important; }
+.paper-sheet { position: static !important; transform: none !important; }
+.bridge-backdrop { display: none !important; }
+.sheet-edge { display: none !important; }
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+.hero-bg canvas { display: none; }
+.hero-scroll { display: none; }
+.grain { display: none; }
+.rig-sec { height: auto; }
+.rig-stage { position: static; height: auto; overflow: visible; padding-block: var(--sec-pad) 0; }
+.rig-beat:not(.rig-beat-last) { display: none; }
+.rig-beat-last { opacity: 1; transform: none; }
+.rig-rail { display: none; }
+.scr-3 { opacity: 1; }
+.phone { opacity: 1; }
+.doc-stamp { opacity: 1; transform: rotate(-8deg) scale(1); }
+.docchk { opacity: 1; }
+.mapline .m-wire::before { transform: scaleX(1); }
+.scroll-progress { display: none; }

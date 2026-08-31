@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ciasteczka i localStorage — Sheetpost</title>
+<title>Ciasteczka i localStorage · Sheetpost</title>
 <meta name="description" content="Lista kluczy localStorage używanych przez stronę Sheetpost. Brak cookies śledzących.">
 <meta name="robots" content="noindex, follow">
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
@@ -12,15 +12,20 @@
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/components.css">
 <link rel="stylesheet" href="assets/css/subpages.css">
+<!-- render-blocking on purpose: picks the document language before first paint -->
+<script src="assets/js/doclang-boot.js"></script>
+<meta name="sp-title-pl" content="Ciasteczka i localStorage · Sheetpost">
+<meta name="sp-title-en" content="Cookies and localStorage · Sheetpost">
 </head>
 <body>
 <main class="legal wrap wrap-narrow">
   <a class="up" href="index.html">&larr; Sheetpost</a>
   <h1 class="pl-txt">Ciasteczka i localStorage</h1>
   <h1 class="en-txt">Cookies and localStorage</h1>
-  <p class="up mono">30.08.2026</p>
+  <p class="up mono pl-txt">ostatnia aktualizacja: 30.08.2026</p>
+  <p class="up mono en-txt">last updated: 2026-08-30</p>
 
-  <div class="doc-langs" role="group" aria-label="Język dokumentu">
+  <div class="doc-langs" role="group" aria-label="Język dokumentu / Document language">
     <button type="button" data-doclang="pl" aria-pressed="true">PL</button>
     <button type="button" data-doclang="en" aria-pressed="false">EN</button>
   </div>
@@ -31,8 +36,11 @@
       <thead><tr><th>Klucz</th><th>Do czego służy</th></tr></thead>
       <tbody>
         <tr><td class="mono">sp_lang</td><td>wybrany język strony</td></tr>
-        <tr><td class="mono">sp_cur</td><td>wybrana waluta cennika (PLN/EUR)</td></tr>
+        <tr><td class="mono">sp_cur</td><td>wybrana waluta cennika (PLN / EUR / RON)</td></tr>
+        <tr><td class="mono">sp_cur_manual</td><td>znacznik, że walutę wybrano ręcznie (żeby zmiana języka jej nie nadpisała)</td></tr>
+        <tr><td class="mono">sp_doclang</td><td>język dokumentów prawnych (PL/EN)</td></tr>
         <tr><td class="mono">sp_runs</td><td>licznik darmowych uruchomień demo</td></tr>
+        <tr><td class="mono">sp_bonus</td><td>znacznik, że dodatkowe testy zostały już odblokowane</td></tr>
         <tr><td class="mono">sp_waitlist</td><td>kopia Twojego zapisu na liście oczekujących</td></tr>
         <tr><td class="mono">sp_lead_email</td><td>e-mail podany przy odblokowaniu dodatkowych testów</td></tr>
       </tbody>
@@ -46,8 +54,11 @@
       <thead><tr><th>Key</th><th>Purpose</th></tr></thead>
       <tbody>
         <tr><td class="mono">sp_lang</td><td>selected site language</td></tr>
-        <tr><td class="mono">sp_cur</td><td>pricing currency (PLN/EUR)</td></tr>
+        <tr><td class="mono">sp_cur</td><td>pricing currency (PLN / EUR / RON)</td></tr>
+        <tr><td class="mono">sp_cur_manual</td><td>marks the currency as chosen by hand, so a language switch will not override it</td></tr>
+        <tr><td class="mono">sp_doclang</td><td>language of the legal documents (PL/EN)</td></tr>
         <tr><td class="mono">sp_runs</td><td>free demo run counter</td></tr>
+        <tr><td class="mono">sp_bonus</td><td>marks the extra demo runs as already unlocked</td></tr>
         <tr><td class="mono">sp_waitlist</td><td>copy of your waitlist signup</td></tr>
         <tr><td class="mono">sp_lead_email</td><td>email submitted to unlock extra tests</td></tr>
       </tbody>
@@ -56,5 +67,7 @@
   </div>
 </main>
 <script src="assets/js/doclang.js" defer></script>
+<script src="assets/js/config.js" defer></script>
+<script src="assets/js/imprint.js" defer></script>
 </body>
 </html>

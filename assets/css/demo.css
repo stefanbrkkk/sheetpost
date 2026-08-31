@@ -17,6 +17,7 @@
 
 /* top bar: steps */
 .demo-bar {
+  list-style: none; margin: 0;
   display: flex; align-items: center; gap: 0;
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
@@ -47,7 +48,7 @@
 .dstep.done .dn { background: var(--acc-dim); border-color: transparent; color: var(--acc); }
 .dstep::after { content: none; } /* spacing handled by gap */
 
-.demo-body { padding: clamp(18px, 3vw, 34px); min-height: 380px; }
+.demo-body { padding: clamp(18px, 3vw, 34px); min-height: 400px; }
 .dpane { display: none; animation: dpane-in var(--d2) var(--e-out); }
 .dpane.active { display: block; }
 @keyframes dpane-in {
@@ -57,7 +58,7 @@
 
 /* pane 1: input */
 .dropzone {
-  border: 1.5px dashed var(--line-hi);
+  border: 1.5px dashed var(--ctl-line);
   border-radius: var(--r-card);
   padding: clamp(28px, 5vw, 48px);
   text-align: center;
@@ -73,7 +74,15 @@
 .demo-paste textarea { min-height: 130px; font-family: var(--font-m); font-size: 0.78rem; line-height: 1.6; resize: vertical; }
 .demo-parsemsg { margin-top: 10px; font-family: var(--font-m); font-size: 0.74rem; color: var(--fg-lo); min-height: 1.4em; }
 .demo-parsemsg.err { color: var(--seal-bright); }
-.demo-nextrow { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.demo-nextrow { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.demo-nextrow .btn { white-space: normal; text-align: center; }
+@media (max-width: 480px) {
+  .demo-nextrow { flex-direction: column-reverse; }
+  .demo-nextrow .btn { width: 100%; }
+  .demo-inputrow .btn { flex: 1 1 100%; }
+}
+
+.dpane-h { margin-bottom: 14px; }
 
 /* pane 2: mapping */
 .map-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(18px, 3vw, 32px); }
@@ -88,6 +97,7 @@
 .map-row .m-src small { display: block; color: var(--fg-faint); font-size: 0.62rem; }
 .map-row .m-arrow { color: var(--fg-faint); }
 .map-row select { padding: 8px 10px; font-size: 0.8rem; }
+.party-stack { display: grid; gap: 12px; align-content: start; }
 .party-card { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--bg-2); padding: 16px; display: grid; gap: 12px; }
 .party-card h4 { font-family: var(--font-m); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--fg-lo); margin: 0; }
 @media (max-width: 880px) { .map-grid { grid-template-columns: 1fr; } }
@@ -102,7 +112,7 @@
   transition: opacity var(--d2) var(--e-out), transform var(--d2) var(--e-out), border-color var(--d2) ease;
 }
 .check.on { opacity: 1; transform: none; }
-.check .c-ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; border: 1px solid var(--line-hi); color: var(--fg-faint); }
+.check .c-ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; border: 1px solid var(--ctl-line); color: var(--fg-lo); }
 .check.pass { border-color: rgba(62, 207, 142, 0.35); }
 .check.pass .c-ico { background: var(--acc-dim); border-color: transparent; color: var(--acc); }
 .check.fail { border-color: rgba(200, 69, 47, 0.5); }
@@ -112,17 +122,22 @@
 .check.fail small { color: var(--seal-bright); }
 
 /* pane 4: preview + xml */
-.prev-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: clamp(18px, 3vw, 30px); align-items: start; }
+.prev-aside { display: grid; gap: 14px; align-content: start; }
+.prev-lede { color: var(--fg); font-size: 0.95rem; }
+.prev-feats li { color: var(--fg); }
+
+.prev-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: clamp(18px, 3vw, 30px); align-items: start; }
 .prev-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .ptab {
   font-family: var(--font-m); font-size: 0.72rem; font-weight: 600;
-  color: var(--fg-lo); padding: 10px 16px; border-radius: var(--r-pill);
-  border: 1px solid var(--line-hi);
+  color: var(--fg); padding: 10px 16px; border-radius: var(--r-pill);
+  border: 1px solid var(--ctl-line);
   transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease;
 }
 .ptab[aria-selected="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
 .xmlview {
   border: 1px solid var(--line); border-radius: var(--r-card);
+  scrollbar-width: thin;
   background: #060907;
   padding: 16px;
   max-height: 380px; overflow: auto;
@@ -155,35 +170,51 @@
 }
 .upo.show { display: flex; }
 .upo .u-id { font-family: var(--font-m); font-size: 0.78rem; color: var(--acc-bright); word-break: break-all; }
+.upo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .upo .u-label { font-family: var(--font-m); font-size: 0.64rem; color: var(--fg-lo); display: block; letter-spacing: 0.1em; }
 
 /* demo footer note + gate */
 .demo-note {
   margin-top: 18px;
   display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center;
-  font-family: var(--font-m); font-size: 0.7rem; color: var(--fg-faint);
+  font-family: var(--font-m); font-size: 0.7rem; color: var(--fg-lo);
 }
 .demo-note .d-privacy { display: inline-flex; align-items: center; gap: 7px; }
+.demo-lead { color: var(--acc); }
+.hint.ok { color: var(--acc); }
 .demo-runs { margin-left: auto; }
 
-/* paywall */
+/* paywall: a fixed overlay, so it cannot scroll away from the focus it traps */
 .gate {
-  position: absolute; inset: 0; z-index: 5;
+  position: fixed; inset: 0; z-index: var(--z-modal);
   display: none; place-items: center;
-  border-radius: var(--r-panel);
-  background: linear-gradient(180deg, rgba(8,11,9,.55), rgba(8,11,9,.92));
+  background: rgba(4, 6, 5, 0.82);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   padding: 24px;
   text-align: center;
 }
 .gate.show { display: grid; }
-.gate-card { max-width: 440px; display: grid; gap: 14px; justify-items: center; position: relative; }
-.gate-card .modal-close { position: absolute; top: -10px; right: -10px; }
+.gate-card {
+  max-width: 460px; width: 100%;
+  display: grid; gap: 14px; justify-items: center; position: relative;
+  background: var(--bg-1);
+  border: 1px solid var(--ctl-line);
+  border-radius: var(--r-panel);
+  padding: 34px 30px 28px;
+  box-shadow: var(--el-2);
+  animation: gate-in var(--d2) var(--e-out);
+}
+@keyframes gate-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.gate-card .modal-close { position: absolute; top: 10px; right: 10px; }
 .gate-card .stamp { opacity: 1; transform: rotate(-6deg); font-size: 0.85rem; }
 .gate-card h3 { font-size: 1.6rem; }
 .gate-card p { font-size: 0.94rem; color: var(--fg); }
 .gate-form { display: flex; gap: 8px; width: 100%; }
+.gate-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .gate-form .input { flex: 1; }
 
 @media (max-width: 640px) {
