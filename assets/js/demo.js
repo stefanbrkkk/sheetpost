@@ -98,12 +98,19 @@
       if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');   /* 1.200,50 */
       else s = s.replace(/,/g, '');                                          /* 1,200.50 */
     } else if (lastComma >= 0) {
-      /* a lone comma is a decimal separator unless it groups thousands (1,200) */
+      /* A lone separator with three digits after it is ambiguous: "1,200" is
+         a thousand in an English sheet and 1.2 in a Polish one. The grouping
+         reading wins, because invoice columns carry money far more often than
+         three-decimal quantities.
+         One case is not ambiguous at all, though: nobody writes a thousands
+         group starting with zero, so "0,125" is 0.125 and never 125. Reading
+         it as 125 was a factor of a thousand on a unit price. */
       var after = s.length - lastComma - 1;
-      s = (after === 3 && /^\d{1,3}(,\d{3})+$/.test(s)) ? s.replace(/,/g, '') : s.replace(',', '.');
+      var grouped = after === 3 && /^[1-9]\d{0,2}(,\d{3})+$/.test(s);
+      s = grouped ? s.replace(/,/g, '') : s.replace(',', '.');
     } else if (lastDot >= 0) {
       var afterDot = s.length - lastDot - 1;
-      if (afterDot === 3 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');  /* 1.200 */
+      if (afterDot === 3 && /^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');  /* 1.200 */
     }
     var n = parseFloat(s);
     return isNaN(n) ? NaN : n;
@@ -714,14 +721,30 @@
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  /* Round the decimal representation, not the binary double.
+
+     toLocaleString and toFixed do not agree: the first rounds the shortest
+     decimal form half up, the second rounds the exact double. Over 200000
+     sampled amounts they differed about 9700 times, which meant the invoice
+     preview could read 72.73 while the XML filed 72.72 for the same line.
+     On a product whose whole promise is that what you see is what gets
+     filed, the two sides have to round once, together. */
+  function round(n, dec) {
+    if (typeof n !== 'number' || !isFinite(n)) return 0;
+    var d = dec === undefined ? 2 : dec;
+    var shifted = Number(n + 'e' + d);
+    if (!isFinite(shifted)) return n;
+    return Number(Math.round(shifted) + 'e-' + d);
+  }
   function fmt(n, dec) {
     var loc = window.SPLocale ? window.SPLocale() : 'pl-PL';
-    return n.toLocaleString(loc, { minimumFractionDigits: dec === undefined ? 2 : dec, maximumFractionDigits: dec === undefined ? 2 : dec });
+    var d = dec === undefined ? 2 : dec;
+    return round(n, d).toLocaleString(loc, { minimumFractionDigits: d, maximumFractionDigits: d });
   }
   /* the XML side of the house: dot decimals, no grouping, no locale */
   function num(n, dec) {
     if (typeof n !== 'number' || !isFinite(n)) return '0';
-    if (dec !== undefined) return n.toFixed(dec);
+    if (dec !== undefined) return round(n, dec).toFixed(dec);
     return String(Math.round(n * 1e6) / 1e6);
   }
   function compute() {

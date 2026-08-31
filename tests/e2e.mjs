@@ -637,6 +637,68 @@ try {
     check('a line-total column is skipped rather than used as the unit price',
       wartosc && wartosc.map.join(',') === 'name,qty,unit,skip,vat', wartosc && wartosc.map.join(','));
 
+    /* "0,125" was read as 125: the thousands-group heuristic matched it,
+       even though nobody writes a thousands group starting with a zero. A
+       unit price out by a factor of a thousand is the worst arithmetic bug
+       this parser can have. */
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    await page.fill('#paste-area', 'Nazwa\tIlość\tCena netto\tVAT\nMateriał\t4\t0,125\t23');
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(350);
+    const tiny = await page.textContent('#inv-total');
+    check('a leading zero is a decimal separator, not a thousands group',
+      /0[.,]6[12]/.test(tiny.replace(/\s/g, '')), `4 x 0,125 net + 23% VAT rendered as "${tiny}"`);
+
+    /* The preview and the XML must round the same way. They did not: one
+       rounded the shortest decimal form, the other the exact double, so the
+       same line could read 72.73 on screen and 72.72 in the file. Feed
+       amounts that land on the half-cent boundary and compare the two. */
+    await page.click('#btn-back-3');
+    await page.waitForTimeout(150);
+    await page.click('#btn-back-2');
+    await page.click('#btn-back-1');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    /* four integer digits, so these read as decimals rather than as thousands
+       groups, and each one lands on the half-cent boundary that made the two
+       rounding paths disagree */
+    await page.fill('#paste-area',
+      'Nazwa\tIlość\tCena netto\tVAT\n' +
+      ['1072,725', '1884,675', '1008,655', '2198,135', '3623,755', '4059,125']
+        .map((v, i) => `Pozycja ${i + 1}\t1\t${v}\t23`).join('\n'));
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(400);
+    const agree = await page.evaluate(() => {
+      const strip = (t) => t.replace(/[\s\u00a0]/g, '').replace(/PLN|zł|EUR|lei/g, '').replace(',', '.');
+      const shown = [...document.querySelectorAll('#inv-rows .inv-row b')].map((b) => strip(b.textContent));
+      const xml = document.querySelector('#xml-out').textContent;
+      /* every amount the file actually carries */
+      const filed = [...xml.matchAll(/<(P_11|P_12A|P_13_\d|P_14_\d|P_15)>([\d.]+)<\/\1>/g)].map((m) => m[2]);
+      const total = strip((document.querySelector('#inv-total') || {}).textContent || '');
+      const p15 = (xml.match(/<P_15>([\d.]+)<\/P_15>/) || [, ''])[1];
+      return { shown, filed, total, p15, sampleXml: xml.slice(0, 0) };
+    });
+    check('every amount in the file is a clean two-decimal number',
+      agree.filed.length > 0 && agree.filed.every((v) => /^\d+\.\d{2}$/.test(v)),
+      JSON.stringify(agree.filed));
+    check('the invoice total on screen is the total in the file',
+      agree.p15 !== '' && Number(agree.p15) === Number(agree.total),
+      `screen ${agree.total}  file ${agree.p15}`);
+    const strayed = agree.shown.filter((v) => v && !agree.filed.includes(String(Number(v).toFixed(2))));
+    check('every line total on screen appears in the file with the same rounding',
+      strayed.length === 0,
+      `shown ${JSON.stringify(agree.shown)}\nfiled ${JSON.stringify(agree.filed)}`);
+
     await ctx.close();
   }
 
@@ -1232,6 +1294,64 @@ try {
     const rewound = await page.evaluate(() =>
       Math.round(+getComputedStyle(document.querySelector('#lockcard')).opacity * 100) / 100);
     check('scrubbing back out of the fold rewinds it', rewound < 0.15, rewound);
+
+    /* The choreography now lives inside a matchMedia range, so it is built and
+       torn down as the window crosses 861px wide or 701px tall. A teardown
+       that does not fully restore state would leave the guarantee section
+       half-hidden with nothing left to reveal it, and the only way to see that
+       is to cross the boundary in both directions and look. */
+    await page.setViewportSize({ width: 700, height: 900 });
+    await page.waitForTimeout(700);
+    const small = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const o = (sel) => r2(+getComputedStyle(document.querySelector(sel)).opacity);
+      return {
+        sheetPosition: getComputedStyle(document.querySelector('#fold-sheet')).position,
+        h2: o('#fold h2'),
+        card: o('#lockcard'),
+        seal: o('#fold .lockcard-seal'),
+        trust: [...document.querySelectorAll('#fold .trust-list li')].map((e) => r2(+getComputedStyle(e).opacity)),
+        headClip: getComputedStyle(document.querySelector('#fold .fold-head')).clipPath,
+      };
+    });
+    check('below the breakpoint the fold is an ordinary section',
+      small.sheetPosition === 'static', small.sheetPosition);
+    check('and every part of it is visible, with no animation left to reveal it',
+      small.h2 === 1 && small.card === 1 && small.seal === 1 &&
+      small.trust.every((v) => v === 1) &&
+      (small.headClip === 'none' || (small.headClip.match(/-?[\d.]+/g) || ['0']).map(Number).every((v) => v <= 0.01)),
+      JSON.stringify(small));
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(900);
+    const backGeo = await page.evaluate(() => {
+      const s = document.querySelector('#fold');
+      const st = ScrollTrigger.getAll().find((x) => x.trigger === s);
+      return st ? {
+        start: Math.round(st.start), end: Math.round(st.end),
+        top: s.offsetTop, height: s.offsetHeight, vh: window.innerHeight,
+      } : null;
+    });
+    /* This trigger starts at 'top bottom', so progress 0 is one viewport
+       before the section's top, and the span is the section's own height.
+       (The rig starts at 'top top' and is asserted differently; copying its
+       rule here is how this check first failed on correct code.) */
+    check('coming back above the breakpoint rebuilds the trigger, measured correctly',
+      !!backGeo &&
+      Math.abs(backGeo.start - (backGeo.top - backGeo.vh)) < 4 &&
+      Math.abs((backGeo.end - backGeo.start) - backGeo.height) < 4,
+      JSON.stringify(backGeo));
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), backGeo.end);
+    await page.waitForTimeout(800);
+    const rebuilt = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      return {
+        seal: r2(+getComputedStyle(document.querySelector('#fold .lockcard-seal')).opacity),
+        card: r2(+getComputedStyle(document.querySelector('#lockcard')).opacity),
+      };
+    });
+    check('and the choreography still reaches its payoff after the round trip',
+      rebuilt.seal === 1 && rebuilt.card === 1, JSON.stringify(rebuilt));
 
     /* the document furniture used to be pinned to top:22px of the sheet, which
        put it behind the fixed header where no reader ever saw it */
