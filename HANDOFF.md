@@ -56,7 +56,7 @@ repository root as-is.
 ```bash
 npm run lint         # eslint over assets/js (vendor excluded)
 npm run check        # static gates: CSP, i18n parity, copy, links, hygiene
-npm run e2e          # ~205 browser assertions, starts its own server
+npm run e2e          # 225 browser assertions, starts its own server
 npm test             # all three
 npm run test:launch  # the same, with launch blockers promoted to failures
 ```
