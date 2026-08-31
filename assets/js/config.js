@@ -8,11 +8,28 @@ window.SP_CONFIG = {
   /* --- REQUIRED before launch: legal identity of the operator --------------
      These appear in the footer imprint and in the privacy policy. Leave them
      empty and the site quietly omits the sentence rather than printing a
-     placeholder at a visitor. */
-  legalName: '',          /* REQUIRED e.g. "Jan Kowalski PR"                  */
-  registryNo: '',         /* REQUIRED APR registration number                 */
-  taxId: '',              /* REQUIRED PIB                                     */
-  address: '',            /* REQUIRED e.g. "Ulica 1, 11000 Beograd"           */
+     placeholder at a visitor.
+     Copy them from the APR registration document, not from memory. `npm run
+     check` validates the shape of each one, so a transposed digit, a PIB
+     pasted into the registry field or a leftover placeholder fails the build
+     instead of going live in the footer of a site that sells regulatory
+     compliance.
+
+       legalName    exactly as registered, including the form,
+                    e.g. "Sheetpost d.o.o. Beograd" or "Marko Markovic PR"
+       entityForm   'preduzetnik' for a sole proprietor, 'doo' for a d.o.o.
+                    It decides the wording of the imprint sentence, and
+                    calling a company a sole proprietor in a public imprint
+                    misstates the operator's legal form.
+       registryNo   maticni broj: exactly 8 digits
+       taxId        PIB: exactly 9 digits
+       address      street, number, postcode, city
+  */
+  legalName: '',             /* REQUIRED exactly as registered at the APR     */
+  entityForm: 'preduzetnik', /* 'preduzetnik' | 'doo'                         */
+  registryNo: '',            /* REQUIRED maticni broj, 8 digits               */
+  taxId: '',                 /* REQUIRED PIB, 9 digits                        */
+  address: '',               /* REQUIRED "Knez Mihailova 1, 11000 Beograd"    */
   country: 'Serbia',
   countryEn: 'Serbia',
 

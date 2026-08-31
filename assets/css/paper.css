@@ -39,8 +39,18 @@
      them. Three rows put the furniture back on the page and use the height. */
   display: grid;
   grid-template-rows: auto 1fr auto;
-  overflow: hidden;
-  overscroll-behavior: contain;
+  /* `clip`, never `hidden`.
+
+     This sheet covers the whole viewport, and `overflow: hidden` makes an
+     element a scroll container even though the user cannot scroll it. Once
+     its content was taller than the sheet, the wheel went to the sheet
+     instead of the page, and `overscroll-behavior: contain` stopped it
+     chaining back out: the page stopped dead at the guarantee section and
+     would move neither up nor down. It measured 1011px of content in an
+     844px sheet on a standard phone, and 645 in 620 on a short laptop
+     window. `clip` clips exactly the same way, to the rounded corners
+     included, without ever creating a scrollport. */
+  overflow: clip;
   transform-origin: 50% 58%;
   /* Off-screen once the sheet is flat and full bleed, so it costs nothing at
      rest. While it is still scaled down it is what makes the thing read as a
@@ -79,10 +89,21 @@
   align-items: center; align-content: center;
   padding: clamp(28px, 4vh, 56px) var(--gutter);
 }
-@media (max-width: 860px) {
-  .paper-bridge { height: 112vh; }
-  .fold-content { grid-template-columns: 1fr; gap: 28px; }
-  .fold-head { padding-top: calc(var(--nav-h) + 12px); }
+/* Narrow or short: the fold becomes an ordinary section that scrolls like any
+   other. The stacked composition cannot fit one screen on a phone, and a
+   pinned stage that cannot fit its own content is exactly how the scroll trap
+   above got created. Same shape the reduced-motion branch already used. */
+@media (max-width: 860px), (max-height: 700px) {
+  .paper-bridge { height: auto; }
+  .bridge-stage { position: static; height: auto; overflow: visible; }
+  .bridge-backdrop { display: none; }
+  .paper-sheet {
+    position: static; transform: none; overflow: visible;
+    box-shadow: none; border-radius: 0;
+  }
+  .sheet-edge { display: none; }
+  .fold-content { grid-template-columns: 1fr; gap: 28px; padding-block: clamp(40px, 7vh, 72px); }
+  .fold-head { padding-top: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .paper-bridge { height: auto; }

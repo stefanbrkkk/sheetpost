@@ -371,7 +371,7 @@
   display: grid; grid-template-columns: var(--split, 50%) 1fr;
   border: 1px solid var(--line); border-radius: var(--r-panel);
   background: var(--bg-1);
-  overflow: hidden;
+  overflow: clip;   /* clip, not hidden: hidden would make this a scroll container the wheel can fall into */
   min-height: 340px;
 }
 .morph-pane {

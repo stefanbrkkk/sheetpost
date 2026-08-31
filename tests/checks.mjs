@@ -193,6 +193,27 @@ section('Launch configuration (assets/js/config.js)');
   const val = (k) => (cfg.match(new RegExp(`${k}:\\s*'([^']*)'`)) || [, ''])[1];
   const required = ['legalName', 'registryNo', 'taxId', 'address'];
   const empty = required.filter((k) => !val(k));
+
+  /* Shape-check whatever IS filled in. Serbian identifiers are fixed length,
+     so a transposed digit, a copied placeholder or a PIB pasted into the
+     registry field is catchable here rather than in the footer of a live site
+     that sells regulatory compliance. These run whether or not the whole set
+     is complete, because a half-filled config is exactly when a mistake slips
+     in. */
+  {
+    const bad = [];
+    const rn = val('registryNo'), pib = val('taxId'), name = val('legalName'), addr = val('address');
+    if (rn && !/^\d{8}$/.test(rn)) bad.push(`registryNo "${rn}" is not an 8 digit maticni broj`);
+    if (pib && !/^\d{9}$/.test(pib)) bad.push(`taxId "${pib}" is not a 9 digit PIB`);
+    if (rn && pib && rn === pib) bad.push('registryNo and taxId are the same value');
+    if (name && name.trim().length < 3) bad.push(`legalName "${name}" is too short to be a registered name`);
+    if (name && /^(test|example|placeholder|tbd|xxx)/i.test(name.trim())) bad.push(`legalName "${name}" looks like a placeholder`);
+    if (addr && !/\d/.test(addr)) bad.push(`address "${addr}" has no street number or postcode`);
+    const form = val('entityForm');
+    if (form && !['preduzetnik', 'doo'].includes(form)) bad.push(`entityForm "${form}" must be preduzetnik or doo`);
+    assert(bad.length === 0, 'the legal identity that is filled in has the right shape', bad.join('\n'));
+  }
+
   assertLaunch(empty.length === 0,
     'operator legal identity is filled in',
     `Still empty: ${empty.join(', ')}\n` +

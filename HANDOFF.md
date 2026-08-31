@@ -104,17 +104,37 @@ maps to a way this site has actually broken. Some worth knowing about:
 
 ```js
 window.SP_CONFIG = {
-  legalName:  '',   // REQUIRED  e.g. "Jan Kowalski PR"
-  registryNo: '',   // REQUIRED  APR registration number
-  taxId:      '',   // REQUIRED  PIB
-  address:    '',   // REQUIRED  e.g. "Ulica 1, 11000 Beograd"
+  legalName:  '',              // REQUIRED  exactly as registered at the APR
+  entityForm: 'preduzetnik',   //           'preduzetnik' or 'doo'
+  registryNo: '',              // REQUIRED  maticni broj, 8 digits
+  taxId:      '',              // REQUIRED  PIB, 9 digits
+  address:    '',              // REQUIRED  "Knez Mihailova 1, 11000 Beograd"
   ...
 };
 ```
 
-Until these are filled in, the footer imprint and the controller sentence in
-the privacy policy are **omitted entirely** rather than printed with
-placeholders. `npm run check:launch` fails while they are empty.
+**Copy these off the APR registration document, not from memory.** They are
+government-issued identifiers that appear in a public imprint on a site whose
+whole proposition is regulatory compliance; an invented or mistyped one is a
+misrepresentation of a legal entity, and it can collide with a real company's
+number. Nobody but the operator can supply them, which is why they ship empty.
+
+`npm run check` validates the shape of whatever is filled in, even before the
+set is complete, so these fail the build rather than the launch:
+
+- a `registryNo` that is not 8 digits, or a `taxId` that is not 9
+- the same value pasted into both
+- a `legalName` that still reads "test", "example", "placeholder", "TBD"
+- an `address` with no street number or postcode
+- an `entityForm` that is neither `preduzetnik` nor `doo`
+
+`entityForm` is not cosmetic: it picks between "sole proprietor" and "a
+company" in the imprint sentence, and calling a d.o.o. a sole proprietor in a
+public imprint misstates the operator's legal form.
+
+Until the four required fields are set, the footer imprint and the controller
+sentence in the privacy policy are **omitted entirely** rather than printed
+with placeholders, and `npm run check:launch` fails.
 
 An imprint is legally required in most of the markets this site targets. Do
 not launch without it.

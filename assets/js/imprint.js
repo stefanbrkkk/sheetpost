@@ -12,12 +12,20 @@
 
   function line(lang) {
     if (!complete) return '';
+    /* A d.o.o. is a company, not a sole proprietor. Saying the wrong one in a
+       public imprint misstates the operator's legal form, so it comes from
+       the config rather than being assumed. */
+    var doo = String(c.entityForm || 'preduzetnik').toLowerCase() === 'doo';
     if (lang === 'en') {
-      return c.legalName + ', sole proprietor registered with the Serbian Business Registers Agency (APR no. '
-        + c.registryNo + ', tax ID ' + c.taxId + '), ' + c.address + ', ' + (c.countryEn || c.country || '');
+      return c.legalName + (doo ? ', a company registered with the Serbian Business Registers Agency'
+        : ', sole proprietor registered with the Serbian Business Registers Agency')
+        + ' (registration no. ' + c.registryNo + ', tax ID ' + c.taxId + '), '
+        + c.address + ', ' + (c.countryEn || c.country || '');
     }
-    return c.legalName + ', przedsiębiorca wpisany do APR (nr ' + c.registryNo
-      + ', PIB ' + c.taxId + '), ' + c.address + ', ' + (c.country || '');
+    return c.legalName + (doo ? ', spółka wpisana do serbskiego rejestru APR'
+      : ', przedsiębiorca wpisany do serbskiego rejestru APR')
+      + ' (nr ' + c.registryNo + ', PIB ' + c.taxId + '), '
+      + c.address + ', ' + (c.country || '');
   }
 
   function render() {

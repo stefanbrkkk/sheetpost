@@ -1328,6 +1328,68 @@ try {
   }
 
   /* =========================================================
+     11c. SCROLL TRAPS
+     ========================================================= */
+  group('11c. Scroll traps');
+  {
+    /* A big element with `overflow: hidden` is still a scroll container. The
+       user cannot scroll it, but the wheel is delivered to it anyway, and once
+       its content is taller than its box the page stops moving. Add
+       `overscroll-behavior: contain` and the wheel cannot even chain back out.
+       That is what happened to the guarantee sheet: 1011px of content in an
+       844px box on a standard phone, and the page would move neither up nor
+       down at that section. `overflow: clip` clips identically and is not a
+       scroll container, which is why it is the right tool for a decorative
+       rounded corner.
+
+       So: no element big enough for a pointer to be over may be a scroll
+       container with content it cannot show. Checked at the sizes where the
+       composition is tightest. */
+    const trapReports = [];
+    for (const [w, h] of [[1440, 900], [1440, 700], [1280, 620], [390, 844], [390, 640]]) {
+      const ctx = await browser.newContext({
+        viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500,
+      });
+      const page = await ctx.newPage();
+      watch(page, `traps/${w}x${h}`, noise);
+      await page.goto(BASE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1500);
+      await page.evaluate(async () => {
+        const H = document.body.scrollHeight;
+        for (let i = 0; i <= 12; i++) {
+          window.scrollTo({ top: (H * i) / 12, behavior: 'instant' });
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+      await page.waitForTimeout(400);
+      const traps = await page.evaluate(() => {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const out = [];
+        document.querySelectorAll('body *').forEach((e) => {
+          const cs = getComputedStyle(e);
+          const container = ['auto', 'scroll', 'hidden'].includes(cs.overflowY) ||
+            ['auto', 'scroll', 'hidden'].includes(cs.overflowX);
+          if (!container) return;
+          const r = e.getBoundingClientRect();
+          if (r.width < vw * 0.55 || r.height < vh * 0.5) return;
+          if (e.scrollHeight <= e.clientHeight + 2) return;   /* nothing to trap */
+          if (e.closest('[data-scrollable]')) return;         /* opted in on purpose */
+          out.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]} ` +
+            `${Math.round(r.width)}x${Math.round(r.height)} ` +
+            `content ${e.scrollHeight} > ${e.clientHeight} overflow-y=${cs.overflowY} ` +
+            `overscroll=${cs.overscrollBehaviorY}`);
+        });
+        return out;
+      });
+      for (const t of traps) trapReports.push(`${w}x${h}: ${t}`);
+      await ctx.close();
+    }
+    check('no viewport-sized element can swallow the page scroll',
+      trapReports.length === 0, trapReports.join('\n'));
+  }
+
+  /* =========================================================
      11b. TYPOGRAPHY SYSTEM
      ========================================================= */
   group('11b. Typography');

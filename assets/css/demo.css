@@ -12,7 +12,10 @@
   background:
     linear-gradient(var(--bg-1), var(--bg-1)) padding-box,
     var(--line-grad) border-box;
-  overflow: hidden;
+  /* clip, not hidden: this panel is nearly viewport sized, and `hidden` would
+     make it a scroll container that the wheel can fall into the moment its
+     content grows past it. It clips a gradient border, nothing more. */
+  overflow: clip;
 }
 
 /* top bar: steps */
