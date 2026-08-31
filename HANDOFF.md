@@ -56,7 +56,7 @@ repository root as-is.
 ```bash
 npm run lint         # eslint over assets/js (vendor excluded)
 npm run check        # static gates: CSP, i18n parity, copy, links, hygiene
-npm run e2e          # 225 browser assertions, starts its own server
+npm run e2e          # 260 browser assertions, starts its own server
 npm test             # all three
 npm run test:launch  # the same, with launch blockers promoted to failures
 ```
@@ -76,6 +76,23 @@ maps to a way this site has actually broken. Some worth knowing about:
   `.from({opacity: 0})` captured the CSS reveal state as its end value.
 - **No console noise**: the sweep loads all five locales at two viewports and
   fails on any error, warning or failed request.
+- **The hero is never erased**: its opacity is sampled every frame from
+  navigation. It used to paint, go transparent when `no-js` came off, and fade
+  back in around a second later, which is the LCP element disappearing.
+- **Scroll cost of the fold**: `#fold` has a viewport budget, a page-share
+  budget, and a limit on how far it may scroll with only one thing animating.
+  That last one is the interesting one. A freeze test passes a section that
+  translates a rectangle for 700px with everything else at opacity 0, because
+  the rectangle does change every frame. What makes a scroll section feel
+  padded is a long single-channel run, so that is what is measured.
+- **Hover is a state**: every control is hovered and its label measured
+  against what is behind it. Four rules were unreadable on hover, including
+  the primary CTA at 1.02:1, and nothing caught them because every other
+  contrast check sampled elements at rest.
+- **Behaviour, not bookkeeping**: the paywall test submits a second address
+  and proves no run is granted, rather than reading the flag; the scroll-lock
+  test scrolls with a real wheel event rather than reading a style property.
+  Both bugs shipped under tests that asserted the bookkeeping and passed.
 
 ---
 
@@ -420,3 +437,34 @@ trigger still starts where the section does.
 - **The waitlist is optimistic.** `mode: 'no-cors'` hides the status code, so
   a rejected promise (the request never left the machine) is reported and
   anything else is treated as success.
+- **The waitlist stores nothing while `formEndpoint` is empty.** The address
+  goes to `localStorage` and the page says "we will write once, at launch",
+  which is a promise nothing can keep yet. Set the endpoint before launch, or
+  soften the confirmation copy. `npm run check` does not fail on this because
+  it is a deliberate pre-launch state, but it is on the launch list.
+- **Romanian cannot be billed by every gateway.** Paddle has no RON. The price
+  toggle keeps RON because a Romanian reader wants to see a Romanian number,
+  and `checkout.currencies` makes the page say which currency actually gets
+  charged. If you pick a gateway that does bill RON, add it to that list.
+
+---
+
+## 13. Judgement calls left to the owner
+
+These came out of the audit and were deliberately **not** changed, because
+they are business decisions rather than defects.
+
+- **The h1 carries no search term.** "Arkusz zostaje arkuszem. Faktura staje
+  się urzędowa." is the whole design concept and the strongest line on the
+  page, but it contains neither "KSeF" nor "Excel" nor "e-faktura". The title
+  tag and meta description carry those. Rewriting the h1 would trade the idea
+  for keywords; that is a call for whoever owns the brand.
+- **The German, Croatian and Romanian pages sell KSeF.** A German searcher
+  looks for XRechnung or ZUGFeRD, a Croatian for fiskalizacija 2.0, a
+  Romanian for e-Factura. Leading with those terms per locale would rank
+  better, but it would also imply the product ships those integrations today.
+  Do it when it does, not before: on a site selling regulatory compliance an
+  overclaim is a liability, not a growth tactic.
+- **The five-step bar in the demo is decorative.** It reads as a stepper.
+  Either wire it to the actual step or restyle it so it does not promise
+  navigation it does not provide.
