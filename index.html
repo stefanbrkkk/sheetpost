@@ -16,7 +16,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sheetpost: faktury z Excela zgodne z KSeF. Bez migracji.</title>
-<meta name="description" content="Połącz Excel lub Google Sheets. Sheetpost mapuje kolumny AI, waliduje każdy wiersz i wysyła faktury zgodne z KSeF 2.0 (FA(3)), z archiwum na 10 lat. Wypróbuj bezpłatnie.">
+<meta name="description" content="Połącz Excel lub Google Sheets. Sheetpost mapuje kolumny z pomocą AI, waliduje każdy wiersz i wysyła faktury zgodne z KSeF 2.0 (FA(3)).">
 <meta name="theme-color" content="#080B09">
 <meta name="color-scheme" content="dark light">
 <link rel="canonical" href="https://sheetpost.app/">
@@ -121,7 +121,7 @@
     <span class="brand-mark" aria-hidden="true"></span>Sheetpost<span class="brand-tld">.app</span>
   </a>
   <nav class="nav-links" aria-label="Nawigacja główna" data-i18n-aria="a_nav">
-    <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+    <a href="#mandates" data-i18n="nav_mandates">Obowiązki</a>
     <a href="#how" data-i18n="nav_how">Jak to działa</a>
     <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
     <a href="#pricing" data-i18n="nav_pricing">Cennik</a>
@@ -144,7 +144,7 @@
 
 <!-- mobile menu -->
 <div class="menu" id="menu" hidden>
-  <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+  <a href="#mandates" data-i18n="nav_mandates">Obowiązki</a>
   <a href="#how" data-i18n="nav_how">Jak to działa</a>
   <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
   <a href="#pricing" data-i18n="nav_pricing">Cennik</a>
@@ -168,12 +168,12 @@
   <div class="hero-bg" aria-hidden="true"><canvas id="cells"></canvas></div>
   <div class="wrap hero-inner">
     <div class="hero-copy">
-      <p class="chip" data-reveal><span class="dot" aria-hidden="true"></span><span data-i18n="hero_chip">KSeF obowiązuje · Francja przejmuje stafetę 09/2026</span></p>
+      <p class="chip" data-reveal><span class="dot" aria-hidden="true"></span><span data-i18n="hero_chip">KSeF obowiązuje · Francja przejmuje pałeczkę 09/2026</span></p>
       <h1 id="hero-h1" data-reveal>
         <span class="hl"><span class="hl-i" data-i18n-html="hero_h1a">Arkusz zostaje arkuszem.</span></span>
         <span class="hl"><span class="hl-i" data-i18n-html="hero_h1b">Faktura staje się <em>urzędowa</em>.</span></span>
       </h1>
-      <p class="hero-sub" data-reveal><span data-i18n="hero_sub">Wklej wiersze z Excela. Sheetpost zmapuje kolumny, waliduje każdą pozycję i wyśle fakturę zgodną z KSeF.</span> <strong data-i18n="hero_sub_strong">39 zł/mies., cena zablokowana.</strong></p>
+      <p class="hero-sub" data-reveal><span data-i18n="hero_sub">Wklej wiersze z Excela. Sheetpost mapuje kolumny, waliduje każdą pozycję i wysyła fakturę zgodną z KSeF.</span> <strong data-i18n="hero_sub_strong">39 zł/mies., cena zablokowana.</strong></p>
       <div class="hero-cta" data-reveal>
         <a class="btn btn-primary magnetic" href="#demo"><span data-i18n="hero_cta1">Wypróbuj bezpłatnie</span></a>
         <a class="btn btn-ghost" href="#how"><span data-i18n="hero_cta2">Zobacz, jak to działa</span></a>
@@ -246,7 +246,7 @@
       <span class="ticker-clock" id="tick-fr" data-deadline="2026-09-01T00:00:00+02:00">-</span>
     </div>
     <div class="ticker" data-reveal>
-      <span class="ticker-label" data-i18n="tick_pl">Kary za brak KSeF w Polsce od</span>
+      <span class="ticker-label" data-i18n="tick_pl">Kary za brak KSeF w Polsce za</span>
       <span class="ticker-clock" id="tick-pl" data-deadline="2027-01-01T00:00:00+01:00">-</span>
     </div>
     <div class="ticker" data-reveal>
@@ -558,7 +558,7 @@ Projekt logo	1	3200	23"></textarea>
 
           <!-- step 5 -->
           <div class="dpane" data-pane="5">
-            <h3 class="dpane-h" data-i18n="send_h">Filing: KSeF 2.0</h3>
+            <h3 class="dpane-h" data-i18n="send_h">Wysyłka: KSeF 2.0</h3>
             <div class="sendlog mono" id="sendlog" aria-live="polite"></div>
             <div class="upo" id="upo" role="status">
               <div><span class="u-label" data-i18n="upo_label">NR KSEF</span><span class="u-id" id="upo-id"></span></div>
@@ -585,7 +585,7 @@ Projekt logo	1	3200	23"></textarea>
           <div class="gate-actions">
             <a class="btn btn-ghost btn-sm" href="#pricing"><span data-i18n="gate_pricing">Zobacz cennik</span></a>
           </div>
-          <p class="modal-note" data-i18n="gate_note">Symulacja działa w całości lokalnie. E-mail służy wyłącznie do wysłania kodu. Żadne dane nie opuszczają Twojego urządzenia.</p>
+          <p class="modal-note" data-i18n="gate_note">Symulacja działa w całości lokalnie. Adres e-mail zapisujemy wyłącznie w Twojej przeglądarce. Żadne dane nie opuszczają Twojego urządzenia.</p>
         </div>
       </div>
     </div>
@@ -655,7 +655,7 @@ Projekt logo	1	3200	23"></textarea>
           <p class="lede" data-i18n="fold_p">Każde narzędzie, od którego uciekasz, podniosło cenę po rejestracji. My nie możemy: cena fundatorska jest zapisana na fakturze i zostaje, dopóki trwa subskrypcja.</p>
           <ul class="trust-list">
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span><b data-i18n="fold_t1b">Cena zablokowana</b> <span data-i18n="fold_t1">na piśmie, na fakturze</span></span></li>
-            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span><b data-i18n="fold_t2b">Anulowanie jednym kliknięciem</b> <span data-i18n="fold_t2">bez formularzy i rozmów retrakcyjnych</span></span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span><b data-i18n="fold_t2b">Anulowanie jednym kliknięciem</b> <span data-i18n="fold_t2">bez formularzy i telefonów z próbą zatrzymania</span></span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg><span><b data-i18n="fold_t3b">Eksport wszystkiego</b> <span data-i18n="fold_t3">otwarte formaty, zawsze Twoje</span></span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/></svg><span><b data-i18n="fold_t4b">Fallback na zawsze</b> <span data-i18n="fold_t4">faktury pozostają czytelne nawet bez nas</span></span></li>
           </ul>
@@ -702,7 +702,7 @@ Projekt logo	1	3200	23"></textarea>
           <ul class="plan-feats">
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f1">3 faktury / mies.</span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f2">1 kraj</span></li>
-            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f3">Pełna walidacja FA(3)</span></li>
+            <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan1_f3">Walidacja pól FA(3)</span></li>
           </ul>
           <a class="btn btn-ghost btn-block" href="#demo"><span data-i18n="plan1_cta">Wypróbuj</span></a>
         </article>
@@ -756,7 +756,7 @@ Projekt logo	1	3200	23"></textarea>
     <div class="wrap partner-grid">
       <div data-reveal>
         <h2 data-i18n-html="partner_h2">Biura księgowe: <em>25 klientów</em> z jednego arkusza.</h2>
-        <p data-i18n="partner_p">Biura trzymają arkusze za wszystkich swoich klientów. Sheetpost zamienia je w gotowe KSeFy hurtowo, i płaci prowizję od każdego polecenia.</p>
+        <p data-i18n="partner_p">Biura prowadzą arkusze dla wszystkich swoich klientów. Sheetpost zamienia je hurtowo w gotowe e-faktury KSeF i płaci prowizję od każdego polecenia.</p>
       </div>
       <div data-reveal>
         <ul class="partner-points">
@@ -797,7 +797,7 @@ Projekt logo	1	3200	23"></textarea>
       </details>
       <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq6_q">Które kraje są obsługiwane na starcie?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
-        <div class="faq-body"><p data-i18n="faq6_a">Startujemy z Polską (KSeF 2.0, FA(3)). Następnie Chorwacja i Rumunia (językowo bliskie, mandaty już żywe), potem Niemcy (XRechnung/ZUGFeRD), a dalej kraje Peppol. Jedno konto obejmuje każdy nowy format, gdy tylko się pojawi.</p></div>
+        <div class="faq-body"><p data-i18n="faq6_a">Startujemy z Polską (KSeF 2.0, FA(3)). Następnie Chorwacja i Rumunia (językowo bliskie, obowiązki już działają), potem Niemcy (XRechnung/ZUGFeRD), a dalej kraje Peppol. Jedno konto obejmuje każdy nowy format, gdy tylko się pojawi.</p></div>
       </details>
       <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq7_q">Jak wygląda RODO i moje dane?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
@@ -813,7 +813,7 @@ Projekt logo	1	3200	23"></textarea>
   <!-- ================= CTA ================= -->
   <section class="section cta" id="waitlist">
     <div class="wrap wrap-narrow">
-      <h2 data-reveal data-i18n-html="cta_h2">Twoja kolej, <em>urzędy</em>.</h2>
+      <h2 data-reveal data-i18n-html="cta_h2">Wasza kolej, <em>urzędy</em>.</h2>
       <p class="lede" data-reveal data-i18n="cta_p">Dołącz do planu fundatorskiego: 39 zł/mies. zablokowane na zawsze, dla pierwszych 500 arkuszy.</p>
       <form class="waitlist" id="waitform" novalidate>
         <input type="text" name="company" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -859,7 +859,7 @@ Projekt logo	1	3200	23"></textarea>
       <div>
         <h3 class="foot-h h-label" data-i18n="foot_nav">Nawigacja</h3>
         <div class="footer-links">
-          <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
+          <a href="#mandates" data-i18n="nav_mandates">Obowiązki</a>
           <a href="#how" data-i18n="nav_how">Jak to działa</a>
           <a href="#demo" data-i18n="nav_demo">Wypróbuj</a>
           <a href="#pricing" data-i18n="nav_pricing">Cennik</a>

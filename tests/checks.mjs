@@ -248,6 +248,28 @@ section('Structured data and config files');
 /* ---------- 6. every local reference resolves ---------- */
 section('SEO');
 {
+  /* Google truncates a title around 60 characters and a description around
+     155. Past that the crawler keeps the text but the reader never sees the
+     end of it, and the end is where the call to action lives. Every one of the
+     five descriptions used to run 168 to 182. */
+  {
+    const T = globalThis.window.SP_I18N;
+    const longTitles = Object.entries(T).filter(([, d]) => d.title.length > 60)
+      .map(([l, d]) => `${l}: ${d.title.length}`);
+    assert(longTitles.length === 0, 'every locale title fits a search result', longTitles.join(', '));
+    const longDescs = Object.entries(T).filter(([, d]) => d.desc.length > 158)
+      .map(([l, d]) => `${l}: ${d.desc.length}`);
+    assert(longDescs.length === 0, 'every locale description fits a search result', longDescs.join(', '));
+    /* the static Polish head is what a crawler sees before any script runs */
+    const html = read('index.html');
+    const staticDesc = (html.match(/<meta name="description" content="([^"]*)"/) || [, ''])[1];
+    assert(staticDesc === T.pl.desc, 'the static meta description matches the pl dictionary',
+      `html: ${staticDesc}\ndict: ${T.pl.desc}`);
+    const staticTitle = (html.match(/<title>([^<]*)<\/title>/) || [, ''])[1];
+    assert(staticTitle === T.pl.title, 'the static title matches the pl dictionary',
+      `html: ${staticTitle}\ndict: ${T.pl.title}`);
+  }
+
   const robots = existsSync(join(ROOT, 'robots.txt')) ? read('robots.txt') : '';
   assert(robots.length > 0, 'robots.txt exists');
   assert(/Sitemap:\s*https:\/\//.test(robots), 'robots.txt points at the sitemap');
