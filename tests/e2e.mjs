@@ -18,6 +18,64 @@ const PORT = Number(process.env.SP_PORT || 8199);
 const BASE = `http://127.0.0.1:${PORT}`;
 const LANGS = ['pl', 'en', 'de', 'hr', 'ro'];
 
+/* The contrast maths has to run inside the page, and every group builds its own
+   browser context, so it travels as source text and is installed on demand.
+   Two things it must get right: translucent backgrounds are composited down the
+   ancestor chain (a 13% tint is not a solid block), and the AA threshold drops
+   to 3:1 only for genuinely large text. */
+const CONTRAST_SRC = `
+window.__spContrast = (root) => {
+  const parse = (c) => {
+    const m = (c || '').match(/[\\d.]+/g);
+    if (!m) return null;
+    return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] };
+  };
+  const lumOf = ({ r, g, b }) => {
+    const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const bgOf = (el) => {
+    const stack = [];
+    let e = el;
+    while (e) {
+      const c = parse(getComputedStyle(e).backgroundColor);
+      if (c && c.a > 0) { stack.push(c); if (c.a === 1) break; }
+      e = e.parentElement;
+    }
+    let out = { r: 8, g: 11, b: 9 };
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const c = stack[i];
+      out = { r: c.a * c.r + (1 - c.a) * out.r, g: c.a * c.g + (1 - c.a) * out.g, b: c.a * c.b + (1 - c.a) * out.b };
+    }
+    return out;
+  };
+  const bad = [];
+  const nodes = [...(root || document).querySelectorAll('p, span, li, a, b, h1, h2, h3, h4, label, small, button, summary, div, td, th')]
+    .filter((e) => e.offsetParent !== null && e.textContent.trim().length > 2 &&
+      [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+  for (const e of nodes) {
+    const cs = getComputedStyle(e);
+    const size = parseFloat(cs.fontSize);
+    const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+    const a = lumOf(parse(cs.color)), b = lumOf(bgOf(e));
+    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    const need = large ? 3 : 4.5;
+    if (ratio < need) bad.push(e.tagName + '.' + (e.className || '').toString().split(' ')[0] +
+      ' ' + ratio.toFixed(2) + ' < ' + need + ' "' + e.textContent.trim().slice(0, 30) + '"');
+  }
+  return [...new Set(bad)];
+};
+`;
+
+/* installs the scanner, then runs it over the whole page or one subtree */
+async function contrastIssues(page, selector) {
+  await page.evaluate(CONTRAST_SRC);
+  return page.evaluate(
+    (sel) => window.__spContrast(sel ? document.querySelector(sel) : null),
+    selector || null,
+  );
+}
+
 /* the production Content-Security-Policy, applied to every HTML response so
    the suite fails if anything reintroduces an inline style or script */
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
@@ -621,6 +679,30 @@ try {
     check('the burger reports its state', (await page.getAttribute('#burger', 'aria-expanded')) === 'true');
     check('the page behind the menu is scroll locked',
       (await page.evaluate(() => document.body.style.overflow)) === 'hidden');
+
+    /* The menu's CTA is an <a> inside .menu, so an unscoped `.menu a` rule
+       outranks .btn-primary and repaints the button as a nav link: link
+       colour on the mint fill, display size, and a link rule through it.
+       On a phone this is the primary CTA, so it is asserted directly. */
+    const menuCta = await page.evaluate(() => {
+      const a = document.querySelector('.menu .btn-primary');
+      const link = document.querySelector('.menu > a');
+      const cs = getComputedStyle(a);
+      return {
+        colorMatchesButton: cs.color !== getComputedStyle(link).color,
+        noLinkRule: cs.borderBottomStyle === 'none' || parseFloat(cs.borderBottomWidth) <= 1,
+        buttonSized: parseFloat(cs.fontSize) < 20,
+        padded: parseFloat(cs.paddingLeft) > 0,
+      };
+    });
+    check('the menu CTA keeps the button ink, not the link ink', menuCta.colorMatchesButton);
+    check('the menu CTA has no link rule through it', menuCta.noLinkRule);
+    check('the menu CTA keeps button type size', menuCta.buttonSized, JSON.stringify(menuCta));
+    check('the menu CTA keeps its button padding', menuCta.padded);
+
+    const menuContrast = await contrastIssues(page, '#menu');
+    check('everything in the open menu clears WCAG AA contrast',
+      menuContrast.length === 0, menuContrast.join('\n'));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(250);
     check('Escape closes the menu', await page.isHidden('#menu'));
@@ -774,6 +856,32 @@ try {
       await ctx.close();
     }
     check('no horizontal overflow at any width in pl/de/ro', problems.length === 0, problems.join('\n'));
+
+    /* Contrast is width-dependent, because the AA threshold relaxes to 3:1 for
+       large text and most display type here is clamped. Something that clears
+       AA at 1440px as "large" can fall under it on a phone once the clamp
+       bottoms out: that is exactly how the accepted stamp on the machine's
+       document slipped through at 4.1:1. */
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage();
+      watch(page, 'contrast/390', noise);
+      await page.goto(BASE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1600);
+      await page.evaluate(async () => {
+        const H = document.body.scrollHeight;
+        for (let i = 0; i <= 10; i++) {
+          window.scrollTo({ top: (H * i) / 10, behavior: 'instant' });
+          await new Promise((r) => setTimeout(r, 140));
+        }
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+      await page.waitForTimeout(500);
+      const narrow = await contrastIssues(page);
+      check('all visible text clears WCAG AA contrast at phone width',
+        narrow.length === 0, narrow.slice(0, 10).join('\n'));
+      await ctx.close();
+    }
   }
 
   /* =========================================================
@@ -917,52 +1025,62 @@ try {
     });
     check('every focusable control shows a focus ring', noRing.length === 0, noRing.join(', '));
 
-    /* text contrast on a sample of real text nodes, in both worlds */
-    const lowContrast = await page.evaluate(() => {
-      const parse = (c) => {
-        const m = (c || '').match(/[\d.]+/g);
-        if (!m) return null;
-        return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] };
-      };
-      const lumOf = ({ r, g, b }) => {
-        const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
-        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-      };
-      /* translucent backgrounds have to be composited down the ancestor
-         chain, or a 13%-alpha tint reads as a solid mint block */
-      const bgOf = (el) => {
-        const stack = [];
-        let e = el;
-        while (e) {
-          const c = parse(getComputedStyle(e).backgroundColor);
-          if (c && c.a > 0) { stack.push(c); if (c.a === 1) break; }
-          e = e.parentElement;
-        }
-        let out = { r: 8, g: 11, b: 9 };
-        for (let i = stack.length - 1; i >= 0; i--) {
-          const c = stack[i];
-          out = { r: c.a * c.r + (1 - c.a) * out.r, g: c.a * c.g + (1 - c.a) * out.g, b: c.a * c.b + (1 - c.a) * out.b };
-        }
-        return out;
-      };
-      const lum = (c) => { const p = parse(c); return p ? lumOf(p) : 1; };
-      const bad = [];
-      const nodes = [...document.querySelectorAll('p, span, li, a, b, h1, h2, h3, h4, label, small, button, summary')]
-        .filter((e) => e.offsetParent !== null && e.textContent.trim().length > 2 &&
-          [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
-      for (const e of nodes) {
-        const cs = getComputedStyle(e);
-        const size = parseFloat(cs.fontSize);
-        const bold = Number(cs.fontWeight) >= 700;
-        const large = size >= 24 || (size >= 18.66 && bold);
-        const a = lum(cs.color), b = lumOf(bgOf(e));
-        const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-        const need = large ? 3 : 4.5;
-        if (ratio < need) bad.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]} ${ratio.toFixed(2)} < ${need} "${e.textContent.trim().slice(0, 30)}"`);
-      }
-      return [...new Set(bad)];
-    });
+    /* text contrast over every real text node on the page */
+    const lowContrast = await contrastIssues(page);
     check('all visible text clears WCAG AA contrast', lowContrast.length === 0, lowContrast.slice(0, 10).join('\n'));
+
+    /* The header crosses between the two worlds on every scroll past the fold.
+       Its palette swaps in one frame, so any surface that animates instead of
+       swapping leaves its own label stranded on the outgoing colour. That is
+       what happened to the CTA: a near white label on the ink world's mint at
+       1.8:1 for 120ms, on every crossing. Sample frame zero of the flip in
+       both directions, for every element in the bar that carries text. */
+    await page.evaluate(CONTRAST_SRC);
+    const flipFlash = await page.evaluate(async () => {
+      const nav = document.querySelector('.nav');
+      const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const settle = () => new Promise((r) => setTimeout(r, 700));
+      const sample = () => window.__spContrast(nav);
+      const out = [];
+      nav.classList.add('scrolled');
+      nav.classList.remove('nav--paper');
+      await settle();
+      out.push(...sample().map((x) => 'ink settled: ' + x));
+      nav.classList.add('nav--paper');           /* ink -> paper */
+      await frame();
+      out.push(...sample().map((x) => 'into paper: ' + x));
+      await settle();
+      /* the settled document world is its own case: the general contrast
+         sweep only ever sees the bar in one world, so a header element that
+         is legible in ink and not on paper slips straight past it */
+      out.push(...sample().map((x) => 'paper settled: ' + x));
+      nav.classList.remove('nav--paper');        /* paper -> ink */
+      await frame();
+      out.push(...sample().map((x) => 'into ink: ' + x));
+      await settle();
+      nav.classList.remove('scrolled');
+      return [...new Set(out)];
+    });
+    check('the header stays legible through the world flip, from frame zero',
+      flipFlash.length === 0, flipFlash.join('\n'));
+
+    /* Overlays are their own worlds and the page-level sweep never sees them:
+       the gate is `hidden` until it is needed, so nothing inside it was ever
+       measured. Its stamp sat at 3.9:1. */
+    await page.evaluate(() => {
+      const el = document.querySelector('#gate');
+      el.hidden = false;
+      el.classList.add('show');
+    });
+    await page.waitForTimeout(400);
+    const gateContrast = await contrastIssues(page, '#gate');
+    check('everything in the demo gate clears WCAG AA contrast',
+      gateContrast.length === 0, gateContrast.join('\n'));
+    await page.evaluate(() => {
+      const el = document.querySelector('#gate');
+      el.classList.remove('show');
+      el.hidden = true;
+    });
 
     /* touch targets */
     const small = await page.evaluate(() => {

@@ -218,7 +218,12 @@
   to { opacity: 1; transform: none; }
 }
 .gate-card .modal-close { position: absolute; top: 10px; right: 10px; }
-.gate-card .stamp { opacity: 1; transform: rotate(-6deg); font-size: 0.85rem; }
+/* The gate's card is darker than the panels the base seal was tuned for, and
+   the stamp is small here: #C8452F lands at 3.9:1. The bright seal is 5.6:1. */
+.gate-card .stamp {
+  opacity: 1; transform: rotate(-6deg); font-size: 0.85rem;
+  color: var(--seal-bright); border-color: var(--seal-bright);
+}
 .gate-card h3 { font-size: 1.6rem; }
 .gate-card p { font-size: 0.94rem; color: var(--fg); }
 .gate-form { display: flex; gap: 8px; width: 100%; }

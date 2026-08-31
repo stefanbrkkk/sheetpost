@@ -101,6 +101,15 @@
 .nav a, .nav button, .nav .btn {
   transition-property: background-color, background, border-color, transform, opacity;
 }
+/* The CTA is the one solid surface in the bar that carries its own label, so
+   the bar's rule applies to it too: fill and text flip in the same frame.
+   Transitioning the fill while the colour snapped left the paper world's near
+   white label on the ink world's mint at 1.8:1 for the length of the fade,
+   on every scroll past the guarantee fold. Hover feedback lives on ::after
+   and transform, so nothing is lost by dropping the fill from the list. */
+.nav .btn-primary {
+  transition-property: border-color, transform, opacity;
+}
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .nav.scrolled { background: rgba(8, 11, 9, 0.97); }
 }
@@ -150,10 +159,16 @@
 .langs button {
   font-family: var(--font-m); font-size: var(--fs-mini); font-weight: 600;
   color: var(--fg-lo); padding: 4px 8px; border-radius: var(--r-pill);
-  transition: color var(--d1) ease, background var(--d1) ease;
+  /* No `color` here. This shorthand sits later in the file than the header's
+     transition-property rule and at equal specificity, so listing colour
+     would quietly re-enable the very fade that rule exists to prevent. */
+  transition: background var(--d1) ease;
 }
 .langs button:hover { color: var(--fg-hi); }
 .langs button[aria-pressed="true"] { background: var(--acc-dim); color: var(--acc); }
+/* The mint accent carries the ink world, but at 11px mono on its own 12% tint
+   over paper it lands at 3.9:1. The document world gets the deeper ink. */
+.nav--paper .langs button[aria-pressed="true"] { color: var(--acc-bright); }
 
 /* reading progress: a hairline that fills as the document is read */
 .scroll-progress {
@@ -180,7 +195,11 @@ html.no-js .scroll-progress { display: none; }
   overscroll-behavior: contain;
 }
 .menu.open { display: flex; }
-.menu a {
+/* Direct children only. The CTA in .menu-foot is an <a> too, and this rule
+   outranks .btn-primary, so an unscoped `.menu a` repainted the button's label
+   in the link colour: near white on mint at 1.8:1, at 1.8rem, with a link
+   underline through it. That is the primary CTA on a phone. */
+.menu > a {
   font-family: var(--font-d); font-size: 1.8rem; font-weight: 700;
   word-spacing: 0.04em;
   color: var(--fg-hi); padding: 10px 0; border-bottom: 1px solid var(--line);
@@ -367,7 +386,7 @@ html.no-js .scroll-progress { display: none; }
   .langs { display: none; }       /* langs live inside the mobile menu instead */
   .menu .langs { display: flex; }
   .menu .langs button { padding: 11px 16px; font-size: var(--fs-mini); }
-  .menu a { font-size: 1.5rem; }
+  .menu > a { font-size: 1.5rem; }
 }
 @media (max-width: 480px) {
   .nav-right > .btn { display: none; } /* CTA lives in the menu + hero on small phones */

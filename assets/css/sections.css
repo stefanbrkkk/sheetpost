@@ -163,7 +163,14 @@
 }
 .p-line span { color: var(--p-lo); }
 .p-line b { font-family: var(--font-m); font-weight: 600; color: var(--p-ink); text-align: right; }
-.m-paper .stamp { position: absolute; right: 8%; bottom: 16%; font-size: clamp(0.9rem, 1.6vw, 1.2rem); }
+/* This stamp is the one that sits on light paper, so it takes the paper seal.
+   The ink seal held only because the clamp kept it large on a desktop; at
+   0.9rem on a phone it fell to 4.1:1. */
+.m-paper .stamp {
+  position: absolute; right: 8%; bottom: 16%;
+  font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+  color: var(--p-seal); border-color: var(--p-seal);
+}
 
 /* world 3: portal */
 .m-portal {
