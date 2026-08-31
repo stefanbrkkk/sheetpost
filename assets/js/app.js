@@ -281,6 +281,36 @@
   window.addEventListener('load', onScroll);
   onScroll();
 
+  /* ---------------- smooth in-page navigation ----------------
+     Done here rather than with CSS `scroll-behavior: smooth`, which corrupts
+     ScrollTrigger's measurements: it restores the scroll position while it
+     measures, and a smooth restore animates instead of landing. */
+  function anchorTop(el) {
+    var navH = nav ? nav.getBoundingClientRect().height : 0;
+    return Math.max(0, el.getBoundingClientRect().top + window.scrollY - navH - 20);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a || a.getAttribute('href') === '#') return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    var id = a.getAttribute('href').slice(1);
+    var target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    window.scrollTo({ top: anchorTop(target), behavior: reduced ? 'auto' : 'smooth' });
+    if (history.replaceState) history.replaceState(null, '', '#' + id);
+    else location.hash = id;
+    /* keyboard and screen-reader users have to land there too */
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  });
+  /* deep links land clear of the header as well */
+  window.addEventListener('load', function () {
+    if (!location.hash) return;
+    var target = document.getElementById(location.hash.slice(1));
+    if (target) setTimeout(function () { window.scrollTo({ top: anchorTop(target), behavior: 'auto' }); }, 60);
+  });
+
   /* ---------------- tickers (countdown, locale aware) ---------------- */
   function localeOf() {
     var lang = document.documentElement.getAttribute('data-lang') || 'pl';

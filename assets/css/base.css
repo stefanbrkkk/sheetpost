@@ -6,8 +6,11 @@
 * { margin: 0; }
 
 html {
-  scroll-behavior: smooth;
-  /* keyboard focus must never land under the fixed header */
+  /* NO scroll-behavior: smooth here. ScrollTrigger sets and restores the
+     scroll position while it measures; with CSS smooth scrolling that restore
+     animates, and every pinned trigger on the page ends up measured against
+     the wrong offset (the rig and the fold both broke after a window resize).
+     Smooth anchor scrolling is done from app.js instead, on click only. */
   scroll-padding-top: calc(var(--nav-h) + 20px);
   -webkit-text-size-adjust: 100%;
   scrollbar-gutter: stable;
@@ -155,7 +158,6 @@ pre, code, kbd, samp {
 
 /* reduced motion: the kill-switch */
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

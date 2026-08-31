@@ -171,8 +171,8 @@
 .lockcard-lock {
   position: absolute; right: 26px; bottom: 26px; top: 86px;
   display: flex; align-items: flex-end;
-  font-family: var(--font-m); font-size: 0.58rem; font-weight: 700;
-  letter-spacing: 0.13em; color: var(--p-acc);
+  font-family: var(--font-m); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.09em; color: var(--p-seal-deep);
   writing-mode: vertical-rl;
   border-left: 1px solid var(--p-line); padding-left: 9px;
   white-space: nowrap; overflow: hidden;
@@ -185,8 +185,8 @@
   display: grid; place-items: center;
   color: var(--p-acc);
   transform: rotate(8deg);
-  font-family: var(--font-m); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.08em;
-  text-align: center; line-height: 1.25;
+  font-family: var(--font-m); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.05em;
+  text-align: center; line-height: 1.2;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.85' intercept='0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23r)'/%3E%3C/svg%3E");
   -webkit-mask-size: 120px;
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.85' intercept='0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23r)'/%3E%3C/svg%3E");

@@ -23,6 +23,7 @@ export default [
         IntersectionObserver: 'readonly',
         URLSearchParams: 'readonly',
         location: 'readonly',
+        history: 'readonly',
         fetch: 'readonly',
         Promise: 'readonly',
         FileReader: 'readonly',

@@ -675,12 +675,29 @@ try {
       r.forEach((x) => clipping.push(`${h}px: ${x}`));
     }
     check('the rig never clips its own composition', clipping.length === 0, clipping.join('\n'));
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(300);
 
-    /* scrubbing back must rewind, not leave the payoff on screen */
-    await page.evaluate((y) => window.scrollTo(0, y), box.top + box.height * 0.05);
-    await page.waitForTimeout(800);
+    /* A resize makes ScrollTrigger re-measure. If anything (CSS smooth
+       scrolling, a pinned ancestor) corrupts that, every scroll-driven
+       section on the page silently freezes at whatever beat it was on. */
+    const triggers = await page.evaluate(() => {
+      const s = document.querySelector('#rig-sec');
+      const st = ScrollTrigger.getAll().find((x) => x.trigger === s);
+      return st ? { start: Math.round(st.start), end: Math.round(st.end), top: s.offsetTop } : null;
+    });
+    check('the rig still measures itself correctly after a resize sweep',
+      !!triggers && Math.abs(triggers.start - triggers.top) < 4 && triggers.end > triggers.start,
+      JSON.stringify(triggers));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(600);
+
+    /* scrubbing back must rewind, not leave the payoff on screen
+       (re-measure: the resize sweep above moved the section) */
+    const box2 = await page.evaluate(() => {
+      const s = document.querySelector('#rig-sec');
+      return { top: s.offsetTop, height: s.offsetHeight };
+    });
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), box2.top + box2.height * 0.05);
+    await page.waitForTimeout(900);
     const rewound = await page.evaluate(() => document.querySelector('#rig-sec').dataset.beat);
     check('scrubbing backwards rewinds the beats', rewound === '1', rewound);
 

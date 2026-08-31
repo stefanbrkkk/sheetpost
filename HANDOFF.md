@@ -277,7 +277,20 @@ down the choreography instead of waiting for a reload.
 
 ---
 
-## 10. Accessibility notes for whoever edits this next
+## 10. One trap worth knowing about
+
+**Never put `scroll-behavior: smooth` on `html`.** ScrollTrigger sets and
+restores the scroll position while it measures; with CSS smooth scrolling that
+restore *animates*, so every measurement lands against the wrong offset. The
+symptom is subtle and delayed: resize the window (or open devtools, or rotate a
+phone) and the rig and the fold silently freeze on whatever frame they were on,
+because their triggers now think they start at a negative scroll position.
+
+Smooth anchor scrolling is implemented in `app.js` instead, on click, where it
+cannot interfere. `npm run e2e` resizes the viewport and then asserts the rig's
+trigger still starts where the section does.
+
+## 11. Accessibility notes for whoever edits this next
 
 - Every interactive control needs a visible focus ring. `:focus` may not set
   `outline: none` without a `:focus-visible` replacement.
@@ -293,7 +306,7 @@ down the choreography instead of waiting for a reload.
 
 ---
 
-## 11. Known deliberate limitations
+## 12. Known deliberate limitations
 
 - **Language is client-side only.** `?lang=en` returns the same HTML; the
   dictionary swaps after load. The canonical URL and `og:locale` follow the

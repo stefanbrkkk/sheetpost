@@ -196,8 +196,8 @@
   width: 34%; height: 5px; border-radius: 99px; background: rgba(206, 244, 220, 0.14);
 }
 .ph-app {
-  font-family: var(--font-m); font-size: 0.56rem; letter-spacing: 0.16em;
-  color: var(--fg-faint); text-transform: uppercase; margin-top: 8px; text-align: center;
+  font-family: var(--font-m); font-size: 0.68rem; letter-spacing: 0.14em;
+  color: var(--fg-lo); text-transform: uppercase; margin-top: 8px; text-align: center;
 }
 .ph-seal {
   margin: auto auto 0;
@@ -220,7 +220,7 @@
 }
 .ph-total span { font-family: var(--font-b); font-size: 0.6em; font-weight: 600; color: var(--fg-lo); }
 .ph-ref {
-  font-family: var(--font-m); font-size: 0.54rem; letter-spacing: 0.06em;
+  font-family: var(--font-m); font-size: 0.64rem; letter-spacing: 0.04em;
   color: var(--fg-lo); text-align: center; margin: 6px 0 auto;
 }
 

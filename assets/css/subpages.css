@@ -9,6 +9,9 @@
 .legal a.up { display: inline-block; }
 .legal h2 { font-size: 1.3rem; margin: 34px 0 10px; }
 .legal p, .legal li { color: var(--fg); font-size: .96rem; max-width: 70ch; }
+/* the global reset zeroes every margin, so the legal prose needs its own */
+.legal p + p, .legal p + ul, .legal ul + p, .legal table + p { margin-top: 14px; }
+.legal li + li { margin-top: 6px; }
 .legal ul { padding-left: 20px; margin: 10px 0; }
 .legal .mono { font-size: .85rem; color: var(--acc); }
 .legal table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .88rem; }
