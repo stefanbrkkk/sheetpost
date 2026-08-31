@@ -38,6 +38,13 @@
   pointer-events: none;
 }
 .paper-sheet .guilloche { opacity: 0.35; }
+/* the sheet sits OUTSIDE .paper-world — scope the paper text colors to it */
+.paper-sheet h2, .paper-sheet h3 { color: var(--p-ink); }
+.paper-sheet h2 em { color: var(--p-acc); }
+.paper-sheet .lede { color: var(--p-fg); }
+.paper-sheet .trust-list li { color: var(--p-fg); }
+.paper-sheet .trust-list li b { color: var(--p-ink); }
+.paper-sheet .trust-list .ico { color: var(--p-acc); }
 .fold-content {
   position: relative;
   width: 100%;
@@ -183,8 +190,10 @@
 .plan-hot .plan-feats li { color: rgba(237,238,228,.82); }
 .plan-hot .plan-feats .ico { color: var(--acc); }
 .plan-hot .stamp {
-  position: absolute; top: -14px; right: 16px; font-size: 0.72rem; padding: 4px 10px; border-width: 2px;
+  position: absolute; top: -14px; right: 16px; font-size: 0.72rem; padding: 5px 12px; border-width: 0;
   opacity: 1; transform: rotate(-6deg); animation: none;
+  background: var(--p-seal); color: #F2F5EC;
+  mask-image: none; -webkit-mask-image: none;
 }
 .plan-hot .btn-ghost { border-color: rgba(237,238,228,.35); color: var(--p-bg); }
 .plan-hot .btn-ghost:hover { border-color: var(--p-bg); }

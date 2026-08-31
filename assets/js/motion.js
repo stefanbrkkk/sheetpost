@@ -155,8 +155,7 @@
     }
     function moveCursor(cell) {
       if (!cursor || !cell) return;
-      cursor.style.left = cell.offsetLeft + 'px';
-      cursor.style.top = cell.offsetTop + 'px';
+      cursor.style.transform = 'translate(' + cell.offsetLeft + 'px,' + cell.offsetTop + 'px)';
       cursor.style.width = cell.offsetWidth + 'px';
       cursor.style.height = cell.offsetHeight + 'px';
       $$('.cell', sheet).forEach(function (c) { c.classList.remove('hot'); });
@@ -277,10 +276,7 @@
         var setSplit = function (v) { morph.style.setProperty('--split', v + '%'); };
         ScrollTrigger.create({
           trigger: morph, start: 'top 78%', once: true,
-          onEnter: function () {
-            var o = { v: 100 };
-            gsap.to(o, { v: target, duration: 1.6, ease: 'power3.inOut', onUpdate: function () { setSplit(o.v); } });
-          }
+          onEnter: function () { setSplit(target); }  /* instant set: animated grid reflow caused CLS */
         });
         var range = $('#morph-range');
         var dragging = false;
@@ -318,8 +314,8 @@
         .fromTo(sheetEl, { yPercent: 100 }, { yPercent: 0 }, 0)
         .to('.bridge-backdrop', { autoAlpha: 0, scale: 0.96, transformOrigin: '50% 100%' }, 0)
         .fromTo('.fold-content > div',
-          { y: 26, autoAlpha: 0 },
-          { y: 0, autoAlpha: 1, stagger: 0.08, duration: 0.3, ease: 'power1.out' }, 0.55);
+          { y: 18 },
+          { y: 0, stagger: 0.08, duration: 0.3, ease: 'power1.out' }, 0.45);
       }
 
       /* --- lockcard tilt + sheen --- */

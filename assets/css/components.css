@@ -66,6 +66,7 @@
 
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
+  padding: 6px 0;
   font-family: var(--font-d); font-weight: 800; font-size: 1.15rem;
   color: var(--fg-hi); letter-spacing: -0.02em;
 }
@@ -222,7 +223,7 @@
 .hint.err { color: var(--seal-bright); }
 
 .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; color: var(--fg-lo); }
-.checkline input { width: 16px; height: 16px; margin-top: 3px; accent-color: var(--acc); flex: none; }
+.checkline input { width: 24px; height: 24px; margin-top: 2px; accent-color: var(--acc); flex: none; }
 
 /* honeypot */
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -278,7 +279,7 @@
 .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; }
 .footer h4 { font-family: var(--font-m); font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.12em; color: var(--fg-faint); margin-bottom: 14px; font-weight: 600; }
 .footer-links { display: flex; flex-direction: column; gap: 9px; }
-.footer-links a { color: var(--fg-lo); font-size: 0.9rem; }
+.footer-links a { color: var(--fg-lo); font-size: 0.9rem; display: inline-block; padding: 12px 0; }
 .footer-links a:hover { color: var(--fg-hi); }
 .footer-tag { font-family: var(--font-m); color: var(--fg-lo); font-size: 0.85rem; margin-top: 12px; }
 .footer-fine { color: var(--fg-faint); font-size: 0.78rem; line-height: 1.7; }
@@ -299,5 +300,4 @@
   .langs { display: none; }       /* langs live inside mobile menu instead */
   .menu .langs { display: flex; }
   .menu .langs button { padding: 11px 16px; font-size: 0.8rem; }
-  .checkline input { width: 20px; height: 20px; }
 }
