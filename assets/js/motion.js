@@ -308,7 +308,7 @@
           defaults: { ease: 'none' },
           scrollTrigger: {
             trigger: bridge, start: 'top bottom', end: 'bottom bottom',
-            scrub: 0.6, invalidateOnRefresh: true
+            scrub: 0.5, invalidateOnRefresh: true
           }
         })
         .fromTo(sheetEl, { yPercent: 100 }, { yPercent: 0 }, 0)
