@@ -95,6 +95,12 @@
 .nav--paper .nav-links a:hover { background: rgba(20, 33, 26, .07); }
 .nav--paper .btn-primary { background: var(--p-acc); color: #F2F5EC; }
 .nav--paper .btn-primary::after { content: none; }
+/* Nothing in the header may transition `color`. The palette swaps in one
+   frame when the page crosses into the document world; a lagging text colour
+   leaves the bar illegible for the length of the transition. */
+.nav a, .nav button, .nav .btn {
+  transition-property: background-color, background, border-color, transform, opacity;
+}
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .nav.scrolled { background: rgba(8, 11, 9, 0.97); }
 }
@@ -131,7 +137,7 @@
   color: var(--fg); font-size: 0.9rem; font-weight: 500;
   padding: 8px 12px; border-radius: var(--r-pill);
   white-space: nowrap;
-  transition: color var(--d1) ease, background var(--d1) ease;
+  transition: background var(--d1) ease;
 }
 .nav-links a:hover { color: var(--fg-hi); background: rgba(206,244,220,.06); }
 
