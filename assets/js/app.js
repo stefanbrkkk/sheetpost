@@ -9,6 +9,10 @@
   var $ = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
   window.SP_I18N_HOOKS = window.SP_I18N_HOOKS || [];
+  /* Currency changes are broadcast the same way language changes are, so a
+     module that cares (checkout.js needs to know when the reader picks a
+     currency the gateway cannot bill in) can listen without reaching in. */
+  window.SP_CUR_HOOKS = window.SP_CUR_HOOKS || [];
   var store = {
     get: function (k, f) { try { var v = localStorage.getItem(k); return v === null ? f : v; } catch (e) { return f; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: preferences just don't persist */ } }
@@ -158,6 +162,9 @@
     $$('[data-cur-symbol]').forEach(function (el) { el.textContent = CUR_SYM[cur]; });
     $$('.plans-toggle button').forEach(function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-cur') === cur ? 'true' : 'false');
+    });
+    window.SP_CUR_HOOKS.forEach(function (fn) {
+      try { fn(cur); } catch (e) { /* one bad hook must not stop the swap */ }
     });
   }
 
@@ -445,4 +452,5 @@
   /* expose tiny helpers for other modules */
   window.SPStore = store;
   window.SPLocale = localeOf;
+  window.SPCurrency = currencyOf;
 })();

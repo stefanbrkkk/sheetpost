@@ -576,6 +576,110 @@ try {
   }
 
   /* =========================================================
+     7b. CHECKOUT WIRING
+     ========================================================= */
+  group('7b. Checkout');
+  {
+    /* unconfigured: the site must behave exactly as it did before payments
+       existed, because that is the state it ships in today */
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    watch(page, 'checkout/off', noise);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+
+    const off = await page.evaluate(() => ({
+      state: window.SPCheckout,
+      hrefs: [...document.querySelectorAll('a[data-checkout]')].map((a) => a.getAttribute('href')),
+      live: document.querySelectorAll('[data-checkout-live]').length,
+      noteHidden: document.getElementById('checkout-cur-note').hidden,
+    }));
+    check('the checkout module loads', !!off.state, JSON.stringify(off.state));
+    check('three plan buttons are wired for checkout', off.state.buttons === 3, off.state.buttons);
+    check('with no URLs configured nothing is rewritten', off.state.wired === 0 && off.live === 0,
+      JSON.stringify(off));
+    check('and the buttons keep the destinations in the markup',
+      off.hrefs.every((h) => h === '#waitlist' || h === '#partner'), off.hrefs.join(', '));
+    check('the billing-currency note stays hidden while checkout is off', off.noteHidden === true);
+    await ctx.close();
+
+    /* configured: inject a config before any script runs, exactly as editing
+       config.js would, and prove the buttons become real checkout links */
+    const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page2 = await ctx2.newPage();
+    watch(page2, 'checkout/on', noise);
+    await page2.addInitScript(() => {
+      window.SP_CONFIG = window.SP_CONFIG || {};
+      window.__SP_TEST_CHECKOUT = {
+        provider: 'test',
+        currencies: ['eur', 'pln'],
+        links: {
+          solo: 'https://pay.example.com/checkout/solo',
+          business: 'https://pay.example.com/checkout/business',
+          accountant: 'not-a-url',
+        },
+      };
+    });
+    /* config.js defines SP_CONFIG wholesale, so graft the test block on after
+       it loads but before checkout.js runs: same ordering a real edit has */
+    await page2.route('**/assets/js/config.js', async (route) => {
+      const res = await route.fetch();
+      const body = await res.text();
+      await route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/javascript' },
+        body: body + '\nwindow.SP_CONFIG.checkout = window.__SP_TEST_CHECKOUT;\n',
+      });
+    });
+    await page2.goto(BASE, { waitUntil: 'networkidle' });
+    await page2.waitForTimeout(1400);
+
+    const on = await page2.evaluate(() => ({
+      state: window.SPCheckout,
+      solo: document.querySelector('[data-checkout="solo"]').getAttribute('href'),
+      soloRel: document.querySelector('[data-checkout="solo"]').getAttribute('rel'),
+      business: document.querySelector('[data-checkout="business"]').getAttribute('href'),
+      accountant: document.querySelector('[data-checkout="accountant"]').getAttribute('href'),
+      live: document.querySelectorAll('[data-checkout-live]').length,
+    }));
+    check('a configured URL becomes the button destination',
+      on.solo === 'https://pay.example.com/checkout/solo' &&
+      on.business === 'https://pay.example.com/checkout/business', JSON.stringify(on));
+    check('checkout links carry rel=noopener', on.soloRel === 'noopener', on.soloRel);
+    check('two live checkout buttons are marked as such', on.live === 2, on.live);
+    /* a malformed URL must be refused, not sent a buyer to */
+    check('a non-https value is refused and the markup href survives',
+      on.accountant === '#partner', on.accountant);
+
+    /* the reader is told what they will actually be charged in */
+    await page2.click('.plans-toggle button[data-cur="ron"]');
+    await page2.waitForTimeout(350);
+    const ron = await page2.evaluate(() => {
+      const n = document.getElementById('checkout-cur-note');
+      return { hidden: n.hidden, text: n.textContent };
+    });
+    check('picking a currency the gateway cannot bill shows the billing note',
+      ron.hidden === false && /EUR/.test(ron.text), JSON.stringify(ron));
+
+    await page2.click('.plans-toggle button[data-cur="eur"]');
+    await page2.waitForTimeout(350);
+    const eur = await page2.evaluate(() => document.getElementById('checkout-cur-note').hidden);
+    check('and hides it again for a currency it can bill', eur === true);
+
+    /* the note is copy, so it has to follow the language switcher */
+    await page2.click('.plans-toggle button[data-cur="ron"]');
+    await page2.waitForTimeout(300);
+    const plText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
+    await page2.click('.langs button[data-lang="de"]');
+    await page2.waitForTimeout(600);
+    const deText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
+    check('the billing note is translated with the rest of the page',
+      deText !== plText && /EUR/.test(deText) && deText.length > 10, `${plText} -> ${deText}`);
+
+    await ctx2.close();
+  }
+
+  /* =========================================================
      8. NAVIGATION AND THE TWO WORLDS
      ========================================================= */
   group('8. Navigation');

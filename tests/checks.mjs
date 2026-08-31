@@ -57,9 +57,18 @@ section('Content-Security-Policy (the shipped _headers has no unsafe-inline)');
   assert(offenders.length === 0, 'no inline style or script in any shipped page', offenders.join('\n'));
 
   const headers = read('_headers');
-  assert(/Content-Security-Policy:/.test(headers), '_headers declares a CSP');
-  assert(!/unsafe-inline/.test(headers.split('\n').filter((l) => !l.includes('og-card')).join('\n')),
-    'the site-wide CSP does not use unsafe-inline');
+  const policies = headers.split('\n')
+    .filter((l) => !l.trim().startsWith('#'))
+    .filter((l) => /Content-Security-Policy\s*:/i.test(l));
+  assert(policies.length > 0, '_headers declares a CSP');
+  /* Read the policy lines, not the file. Grepping the whole file meant a
+     comment explaining why the policy forbids unsafe-inline failed the check
+     for containing the words, while a second policy block further down could
+     have introduced it for real without the words appearing on a line the
+     old filter kept. */
+  const loose = policies.filter((l) => /unsafe-inline|unsafe-eval/.test(l));
+  assert(loose.length === 0,
+    'the site-wide CSP does not use unsafe-inline', loose.join('\n'));
 }
 
 /* ---------- 2. i18n integrity ---------- */
@@ -107,7 +116,7 @@ section('i18n');
   assert(unknown.length === 0, `${referenced.size} referenced keys all exist`, unknown.join(', '));
 
   /* and every key must be reachable from markup or from the scripts */
-  const js = ['app.js', 'demo.js', 'motion.js'].map((f) => read(`assets/js/${f}`)).join('\n');
+  const js = ['app.js', 'demo.js', 'motion.js', 'checkout.js'].map((f) => read(`assets/js/${f}`)).join('\n');
   const orphan = plKeys.filter((k) =>
     !referenced.has(k) &&
     !new RegExp(`['"\`]${k}['"\`]`).test(js) &&
@@ -166,6 +175,50 @@ section('Launch configuration (assets/js/config.js)');
     `Still empty: ${empty.join(', ')}\n` +
     'The footer imprint and the privacy policy stay blank until these are set.\n' +
     'This is a launch blocker, not a code defect. See HANDOFF.md.');
+}
+
+/* ---------- 4b. checkout configuration ---------- */
+section('Checkout (assets/js/config.js)');
+{
+  const cfg = read('assets/js/config.js');
+  const html = read('index.html');
+
+  /* every plan that can be bought must be findable by the wiring */
+  const wired = [...html.matchAll(/data-checkout="([a-z]+)"/g)].map((m) => m[1]);
+  assert(wired.length === 3 && new Set(wired).size === 3,
+    'every paid plan carries a checkout hook', wired.join(', '));
+
+  /* the links block must declare exactly those plans, or a filled-in URL
+     would sit in config pointing at a button that does not exist */
+  const block = (cfg.match(/links:\s*\{([\s\S]*?)\}/) || [, ''])[1];
+  const declared = [...block.matchAll(/(\w+):/g)].map((m) => m[1]);
+  assert(wired.every((w) => declared.includes(w)) && declared.length === wired.length,
+    'config declares a link for each of them', `markup: ${wired.join(', ')} / config: ${declared.join(', ')}`);
+
+  /* a checkout URL is where a reader arrives with their card out: an http or
+     relative value is a configuration mistake worth failing the build for */
+  const urls = [...block.matchAll(/\w+:\s*'([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  const bad = urls.filter((u) => !/^https:\/\//.test(u));
+  assert(bad.length === 0, 'every configured checkout URL is absolute https', bad.join(', '));
+
+  const curBlock = (cfg.match(/currencies:\s*\[([^\]]*)\]/) || [, ''])[1];
+  const curs = [...curBlock.matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+  const knownCur = ['pln', 'eur', 'ron'];
+  const strayCur = curs.filter((c) => !knownCur.includes(c));
+  assert(strayCur.length === 0,
+    'billable currencies are ones the price toggle offers', strayCur.join(', '));
+
+  /* if payments are live, the reader has to be told what they are charged in */
+  assert(urls.length === 0 || curs.length > 0,
+    'a live checkout declares which currencies it bills in',
+    'checkout.links is filled in but checkout.currencies is empty, so a reader '
+    + 'who picks an unsupported currency is shown a price nobody will charge them');
+
+  if (urls.length === 0) {
+    ok('checkout is not configured yet (the buttons keep their waitlist links)');
+  } else {
+    ok(`checkout is live for ${urls.length} plan(s)`);
+  }
 }
 
 /* ---------- 5. structured data / config files ---------- */

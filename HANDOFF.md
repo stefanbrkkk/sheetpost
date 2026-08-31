@@ -227,6 +227,107 @@ The language picks a default currency; a manual choice is remembered
 
 ---
 
+## 7b. Taking payments
+
+The site is wired for checkout but not selling yet. Turning it on is editing
+`assets/js/config.js`. Nothing else has to change: no SDK, no backend on this
+site, and no change to the Content-Security-Policy.
+
+### Which gateway
+
+The blocker is the seller's country, not the buyer's. **Stripe does not accept
+Serbia as a merchant country**, and neither does Wise Business or Revolut
+Business. Lemon Squeezy is migrating onto Stripe Managed Payments, which
+inherits that same country list, so it is a dead end for a Serbian company.
+
+That leaves two shapes of answer:
+
+| Route | Onboards a Serbian company | EU VAT / OSS |
+|---|---|---|
+| **Merchant of record** (Paddle, Polar) | yes | **none** - they are the seller |
+| Serbian acquirer + gateway (AllSecure, Monri/WSPay, Intesa, AIK, ...) | yes | all of it stays with you |
+| Stripe Atlas (US Delaware C-corp) | via a US entity | all of it stays with you |
+
+A merchant of record is the seller to the Polish, German, Croatian and Romanian
+customer. That removes non-Union OSS registration, per-country VAT rates,
+quarterly OSS returns, customer-location evidence logging and the ten-year
+archive. At around 9 EUR per month that compliance machine costs more per year
+than the merchant-of-record fee ever will, which is why the domestic acquirers
+lose here despite being technically capable. Stripe Atlas is the worst of both:
+a Delaware franchise tax, a Form 5472 with a US$25,000 penalty for missing it,
+and it still leaves the EU VAT liability with you.
+
+**Recommended: Paddle, with Polar as the fallback.** Both are merchants of
+record and both issue hosted checkout links, so they drop into the wiring below
+identically and switching is a config edit.
+
+> **Verify before you commit.** The vendor documentation sites were unreachable
+> from the environment this was researched in, so the eligibility and currency
+> claims above come from search results quoting those pages, not from the pages
+> themselves. Before you sign anything, open Paddle's supported-countries and
+> supported-currencies pages yourself, and confirm Serbia and your currencies.
+> The integration below does not depend on the answer: it is provider-agnostic.
+
+### Turning it on
+
+1. Create the products in the gateway and copy each plan's **hosted checkout
+   URL** (Paddle: `https://pay.paddle.io/checkout/...`).
+2. Fill in `assets/js/config.js`:
+
+   ```js
+   checkout: {
+     provider: 'paddle',
+     currencies: ['eur', 'pln'],     // what the gateway can actually BILL in
+     links: {
+       solo:       'https://pay.paddle.io/checkout/...',
+       business:   'https://pay.paddle.io/checkout/...',
+       accountant: 'https://pay.paddle.io/checkout/...'
+     }
+   }
+   ```
+3. `npm run check` and `npm run e2e`. That is the whole deployment.
+
+`assets/js/checkout.js` rewrites the `href` of each `a[data-checkout]` button.
+A plan whose URL is empty keeps the destination written in the markup, so the
+pre-launch waitlist behaviour survives untouched and you can switch plans on one
+at a time. A URL that is not absolute `https:` is refused rather than followed,
+and `npm run check` fails on one before it ever reaches a browser.
+
+**Currencies.** The price toggle offers PLN, EUR and RON. Paddle has no RON. If
+a reader picks a currency the gateway cannot bill, the pricing section says
+which currency they will actually be charged in - that is what `currencies` is
+for, and `npm run check` fails if you configure links without it. Do not show a
+RON price and silently charge euros.
+
+### Why links and not an SDK
+
+CSP has no directive that restricts where an anchor navigates: `navigate-to`
+was drafted for CSP3 and dropped, and no browser ships it. So a hosted checkout
+link works under `default-src 'self'` with nothing added. `form-action 'self'`
+*does* restrict where a form may POST, so always send buyers with an `<a href>`,
+never a form POST.
+
+A client-side checkout SDK would cost the whole security posture: its bootstrap
+injects inline styles, so it needs `style-src 'unsafe-inline'`, plus `frame-src`
+and `connect-src` entries for the vendor. `npm run check` fails on that, by
+design. The link costs one redirect and nothing else.
+
+Because the destination is a real `href` in the HTML, checkout also works with
+JavaScript disabled.
+
+### What still needs a server
+
+A hosted link removes the checkout server. It does not remove **fulfilment**.
+Something must receive the gateway's subscription webhooks (`created`,
+`updated`, `paused`, `canceled`, `past_due`), verify the signature, and grant or
+revoke access. That belongs to the product, not to this marketing site. If you
+want it in the same Cloudflare project, add `functions/api/<provider>-webhook.js`:
+Pages Functions live outside the five static pages the gates read, so nothing
+here changes. Keep the webhook secret in Cloudflare environment variables, never
+in `config.js` - that file ships to the browser.
+
+---
+
 ## 8. The demo engine
 
 `assets/js/demo.js` is the only genuinely intricate file. What it does:

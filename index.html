@@ -718,7 +718,7 @@ Projekt logo	1	3200	23"></textarea>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f3">Archiwum na 10 lat</span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan2_f4">Cena zablokowana na zawsze</span></li>
           </ul>
-          <a class="btn btn-primary btn-block" href="#waitlist"><span data-i18n="plan2_cta">Zablokuj cenę</span></a>
+          <a class="btn btn-primary btn-block" href="#waitlist" data-checkout="solo"><span data-i18n="plan2_cta">Zablokuj cenę</span></a>
         </article>
         <article class="plan" data-reveal>
           <p class="plan-col"><span>C</span><span data-i18n="plan3_col">WIELE FIRM</span></p>
@@ -730,7 +730,7 @@ Projekt logo	1	3200	23"></textarea>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan3_f2">Skrzynka statusów i UPO</span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan3_f3">Kolejne kraje bez zmiany konta</span></li>
           </ul>
-          <a class="btn btn-ghost btn-block" href="#waitlist"><span data-i18n="plan_cta">Zapisz się</span></a>
+          <a class="btn btn-ghost btn-block" href="#waitlist" data-checkout="business"><span data-i18n="plan_cta">Zapisz się</span></a>
         </article>
         <article class="plan" data-reveal>
           <p class="plan-col"><span>D</span><span data-i18n="plan4_col">BIURA RACHUNKOWE</span></p>
@@ -742,10 +742,11 @@ Projekt logo	1	3200	23"></textarea>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan4_f2">Wysyłka hurtowa</span></li>
             <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="plan4_f3">Panel partnera + prowizja 20-30%</span></li>
           </ul>
-          <a class="btn btn-ghost btn-block" href="#partner"><span data-i18n="plan4_cta">Zostań partnerem</span></a>
+          <a class="btn btn-ghost btn-block" href="#partner" data-checkout="accountant"><span data-i18n="plan4_cta">Zostań partnerem</span></a>
         </article>
       </div>
       <p class="pricing-note" data-i18n="pricing_note">Pierwszych 500 kont zatrzymuje cenę fundatorską na zawsze. To cała sztuczka.</p>
+      <p class="pricing-note" id="checkout-cur-note" hidden></p>
       <p class="pricing-note" data-i18n="pricing_vat">Ceny dla konsumentów zawierają VAT. Przedsiębiorcy rozliczani są netto przy zakupie.</p>
     </div>
   </section>
@@ -892,6 +893,7 @@ Projekt logo	1	3200	23"></textarea>
 <script src="assets/js/app.js" defer></script>
 <script src="assets/js/motion.js" defer></script>
 <script src="assets/js/demo.js" defer></script>
+<script src="assets/js/checkout.js" defer></script>
 <script src="assets/js/imprint.js" defer></script>
 </body>
 </html>
