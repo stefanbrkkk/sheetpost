@@ -116,7 +116,7 @@
    The nav rides both worlds. .nav--paper flips its palette so
    the header stays legible once the document world takes over.
    ------------------------------------------------------------ */
-.nav--paper {
+.nav--paper.scrolled {
   --fg-hi: var(--p-ink);
   --fg: #3D4A41;
   --fg-lo: #5F6A58;

@@ -568,6 +568,39 @@ try {
     });
     check('nav text over the paper world clears WCAG AA', contrast >= 4.5, contrast.toFixed(2));
 
+    /* The header's palette is a set of custom properties (instant) while its
+       surface is a background (animatable). If those two ever disagree, the
+       header is illegible for the length of the transition. Sample it right
+       through the flip. */
+    const flip = await page.evaluate(async () => {
+      const lum = (c) => {
+        const m = (c || '').match(/[\d.]+/g);
+        if (!m) return 1;
+        const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(+m[0]) + 0.7152 * f(+m[1]) + 0.0722 * f(+m[2]);
+      };
+      const nav = document.querySelector('#nav');
+      const brand = nav.querySelector('.brand');
+      const worst = { ratio: 99 };
+      const H = document.body.scrollHeight;
+      for (let i = 0; i < 40; i++) {
+        window.scrollTo({ top: H * (0.60 + i * 0.004), behavior: 'instant' });
+        await new Promise((r) => requestAnimationFrame(r));
+        await new Promise((r) => setTimeout(r, 24));
+        const navBg = getComputedStyle(nav).backgroundColor;
+        const m = (navBg || '').match(/[\d.]+/g);
+        const alpha = m && m[3] !== undefined ? +m[3] : 1;
+        if (alpha < 0.5) continue;                 /* transparent header sits on the page, not on itself */
+        const a = lum(getComputedStyle(brand).color);
+        const b = lum(navBg);
+        const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        if (ratio < worst.ratio) Object.assign(worst, { ratio, navBg, color: getComputedStyle(brand).color });
+      }
+      return worst;
+    });
+    check('the header never goes illegible while it changes worlds',
+      flip.ratio >= 4.5, JSON.stringify(flip));
+
     await ctx.close();
   }
 

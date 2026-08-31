@@ -268,7 +268,9 @@
     if (nav) {
       nav.classList.toggle('scrolled', y > 24);
       nav.classList.toggle('hide', y > lastY && y > 240 && !menuOpen);
-      nav.classList.toggle('nav--paper', overPaper(nav.getBoundingClientRect().height || 68));
+      /* the paper palette only exists together with the paper surface, and
+         the surface only exists once the header is scrolled */
+      nav.classList.toggle('nav--paper', y > 24 && overPaper(nav.getBoundingClientRect().height || 68));
     }
     if (progress) progress.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, y / max) : 0) + ')';
     lastY = y;

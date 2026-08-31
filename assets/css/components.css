@@ -62,7 +62,12 @@
   padding: 0 clamp(16px, 3vw, 32px);
   height: var(--nav-h);
   border-bottom: 1px solid transparent;
-  transition: transform var(--d2) var(--e-out), background var(--d2) ease, border-color var(--d2) ease, height var(--d2) ease;
+  /* The background is deliberately NOT transitioned. The paper theme swaps
+     custom properties, which change instantly; animating the background over
+     350ms left paper-coloured text on an ink-coloured bar for a third of a
+     second, at a contrast of 1.2:1. Colour and surface flip together or not
+     at all. */
+  transition: transform var(--d2) var(--e-out), border-color var(--d2) ease, height var(--d2) ease;
 }
 .nav.scrolled {
   background: rgba(8, 11, 9, 0.82);
