@@ -55,8 +55,8 @@ repository root as-is.
 
 ```bash
 npm run lint         # eslint over assets/js (vendor excluded)
-npm run check        # static gates: CSP, i18n parity, copy, links, hygiene
-npm run e2e          # 260 browser assertions, starts its own server
+npm run check        # 57 static gates: CSP, i18n parity, SEO, copy, links, hygiene
+npm run e2e          # 261 browser assertions, starts its own server
 npm test             # all three
 npm run test:launch  # the same, with launch blockers promoted to failures
 ```
@@ -89,6 +89,12 @@ maps to a way this site has actually broken. Some worth knowing about:
   against what is behind it. Four rules were unreadable on hover, including
   the primary CTA at 1.02:1, and nothing caught them because every other
   contrast check sampled elements at rest.
+- **Scroll traps**: no element big enough to sit under a pointer may be a
+  scroll container holding content it cannot show. `overflow: hidden` makes an
+  element a scroll container even though nobody can scroll it, so the wheel
+  goes there instead of to the page; the guarantee sheet swallowed the scroll
+  outright on a phone. Use `overflow: clip` for decorative clipping. It clips
+  identically, rounded corners included, and is never a scrollport.
 - **Behaviour, not bookkeeping**: the paywall test submits a second address
   and proves no run is granted, rather than reading the flag; the scroll-lock
   test scrolls with a real wheel event rather than reading a style property.
