@@ -138,6 +138,29 @@ section('i18n');
     if (norm(m[6]) !== norm(T.pl[key])) drift.push(`${key}\n    html: ${norm(m[6])}\n    dict: ${norm(T.pl[key])}`);
   }
   assert(drift.length === 0, 'static Polish markup matches the pl dictionary', drift.join('\n'));
+
+  /* The same rule for the attributes. aria-label, placeholder and the demo's
+     data-t cells are translated too, and one of them had drifted from the
+     dictionary without anything noticing, because the check above only ever
+     compared element text. */
+  const attrDrift = [];
+  const ATTRS = [['aria', 'aria-label'], ['ph', 'placeholder'], ['t', 'data-t']];
+  for (const [suffix, attr] of ATTRS) {
+    const re2 = new RegExp(`<[a-z0-9]+[^>]*?\\b${attr}="([^"]*)"[^>]*?data-i18n-${suffix}="([a-z0-9_]+)"`, 'gi');
+    const re3 = new RegExp(`<[a-z0-9]+[^>]*?data-i18n-${suffix}="([a-z0-9_]+)"[^>]*?\\b${attr}="([^"]*)"`, 'gi');
+    for (const [re, valueFirst] of [[re2, true], [re3, false]]) {
+      for (const m of html.matchAll(re)) {
+        const key = valueFirst ? m[2] : m[1];
+        const value = valueFirst ? m[1] : m[2];
+        if (!(key in T.pl)) continue;
+        if (norm(value) !== norm(T.pl[key])) {
+          attrDrift.push(`${attr}/${key}\n    html: ${norm(value)}\n    dict: ${norm(T.pl[key])}`);
+        }
+      }
+    }
+  }
+  assert(attrDrift.length === 0,
+    'static Polish attributes match the pl dictionary', [...new Set(attrDrift)].join('\n'));
 }
 
 /* ---------- 3. copy hygiene ---------- */
@@ -268,6 +291,35 @@ section('SEO');
     const staticTitle = (html.match(/<title>([^<]*)<\/title>/) || [, ''])[1];
     assert(staticTitle === T.pl.title, 'the static title matches the pl dictionary',
       `html: ${staticTitle}\ndict: ${T.pl.title}`);
+  }
+
+  /* Structured data that disagrees with the page is worse than none: Google
+     treats mismatched FAQ markup as a manual-action-grade violation. Generate
+     nothing here, just prove the two still say the same thing. */
+  {
+    const html = read('index.html');
+    const ld = JSON.parse((html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) || [, '{}'])[1]);
+    const graph = ld['@graph'] || [];
+    const faq = graph.find((n) => n['@type'] === 'FAQPage');
+    assert(!!faq, 'the page declares its FAQ as structured data');
+    if (faq) {
+      const strip = (t) => t.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      const qs = [...html.matchAll(/data-i18n="faq\d+_q">([^<]+)</g)].map((m) => strip(m[1]));
+      const as = [...html.matchAll(/data-i18n="faq\d+_a">([\s\S]*?)<\/p>/g)].map((m) => strip(m[1]));
+      assert(faq.mainEntity.length === qs.length,
+        `the structured FAQ covers all ${qs.length} questions on the page`,
+        `markup: ${qs.length}, json-ld: ${faq.mainEntity.length}`);
+      const mismatched = faq.mainEntity.filter((e, i) =>
+        e.name !== qs[i] || (e.acceptedAnswer || {}).text !== as[i]);
+      assert(mismatched.length === 0,
+        'every structured FAQ answer matches the visible one',
+        mismatched.map((e) => e.name).join('\n'));
+    }
+    /* a share card with no declared size renders as a small thumbnail on the
+       first scrape, before the crawler has fetched the image */
+    for (const tag of ['og:image:width', 'og:image:height', 'og:image:type', 'og:image:alt']) {
+      assert(html.includes(`property="${tag}"`), `the share card declares ${tag}`);
+    }
   }
 
   const robots = existsSync(join(ROOT, 'robots.txt')) ? read('robots.txt') : '';

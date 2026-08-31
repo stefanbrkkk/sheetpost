@@ -33,6 +33,10 @@
 <meta property="og:description" content="Faktury z Excela zgodne z KSeF 2.0. Walidacja przed wysyłką, archiwum na 10 lat, cena zablokowana na zawsze.">
 <meta property="og:url" content="https://sheetpost.app/">
 <meta property="og:image" content="https://sheetpost.app/assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Sheetpost: arkusz zostaje arkuszem, faktura staje się urzędowa.">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:locale:alternate" content="en_GB">
 <meta property="og:locale:alternate" content="de_DE">
@@ -104,6 +108,76 @@
           { "@type": "Offer", "name": "Księgowy", "price": "199", "priceCurrency": "PLN" }
         ]
       }
+    },
+    {
+        "@type": "FAQPage",
+        "@id": "https://sheetpost.app/#faq",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Jak wysłać fakturę do KSeF z Excela?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Możesz użyć bezpłatnej Aplikacji Podatnika KSeF 2.0 od Ministerstwa Finansów, przy pojedynczych fakturach w zupełności wystarczy. Przy regularnej sprzedaży wklejasz w Sheetpost wiersze z Excela, AI mapuje kolumny, każda pozycja jest walidowana względem wymogów FA(3) i wysyłana oficjalnym API. Potwierdzenie UPO trafia do Twojej skrzynki, a faktura do archiwum."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Czy muszę przestać używać Excela lub Google Sheets?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Nie. To cała idea: arkusz pozostaje źródłem prawdy, a Sheetpost jest warstwą tłumaczenia między nim a systemem Ministerstwa Finansów."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Co jeśli urząd odrzuci fakturę?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Nie powinno się to zdarzyć: każdy wiersz jest sprawdzany względem aktualnych reguł krajowych przed wysyłką. Gdyby jednak doszło do odrzucenia, przetłumaczymy błąd na ludzki język, wskażemy komórkę do poprawy i wyślemy ponownie jednym kliknięciem."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Czym jest FA(3) i czy muszę rozumieć XML?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "FA(3) to wzór faktury elektronicznej obowiązujący w KSeF 2.0. Nie musisz go znać: pracujesz na kolumnach, które znasz od lat, a my generujemy i walidujemy dokument urzędowy za Ciebie. Podgląd XML znajdziesz w każdej chwili, jeśli lubisz wiedzieć więcej."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Czy cena naprawdę jest zablokowana na zawsze?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Tak. Plan fundatorski zapisujemy wprost: cena, którą masz przy rejestracji, obowiązuje dopóki trwa Twoja subskrypcja. Anulujesz jednym kliknięciem, wszystko eksportujesz w otwartych formatach."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Które kraje są obsługiwane na starcie?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Startujemy z Polską (KSeF 2.0, FA(3)). Następnie Chorwacja i Rumunia (językowo bliskie, obowiązki już działają), potem Niemcy (XRechnung/ZUGFeRD), a dalej kraje Peppol. Jedno konto obejmuje każdy nowy format, gdy tylko się pojawi."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Jak wygląda RODO i moje dane?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Demo na tej stronie działa w 100% w Twojej przeglądarce, żadne dane stąd nie wychodzą. W aplikacji arkusz przetwarzamy wyłącznie w celu wygenerowania i wysłania faktury, poświadczenia szyfrujemy, a archiwum eksportujesz w otwartych formatach kiedy chcesz."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Czy jest wersja dla biur księgowych?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Tak, plan Księgowy obejmuje 25 klientów, wysyłkę hurtową i panel partnera z prowizją 20-30% od poleceń. Napisz na partnerzy@sheetpost.app."
+                }
+            }
+        ]
     }
   ]
 }
@@ -640,7 +714,7 @@ Projekt logo	1	3200	23"></textarea>
 </section>
 
 <!-- ================= THE FOLD + GUARANTEE ================= -->
-<section class="paper-bridge" id="fold" aria-label="Gwarancja" data-i18n-aria="a_guarantee">
+<section class="paper-bridge" id="fold" aria-label="Gwarancja ceny" data-i18n-aria="a_guarantee">
   <div class="bridge-stage">
     <div class="bridge-backdrop" aria-hidden="true"></div>
     <div class="paper-sheet" id="fold-sheet">

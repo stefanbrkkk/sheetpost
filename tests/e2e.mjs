@@ -157,6 +157,39 @@ try {
      ========================================================= */
   group('1. First paint and the hero');
   {
+    /* The largest element on the page must not be erased after it has been
+       painted. The markup ships with html.no-js, which forces [data-reveal]
+       visible; dropping that class used to hand the hero back to
+       `[data-reveal] { opacity: 0 }` until an observer callback could restore
+       it, so the headline measured 0 at 377ms and did not settle until about
+       1059ms. Sample every frame from navigation and require that once it is
+       visible it stays visible. */
+    {
+      const lcpCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const lcpPage = await lcpCtx.newPage();
+      await lcpPage.addInitScript(() => {
+        window.__heroSamples = [];
+        const t0 = performance.now();
+        const tick = () => {
+          const h = document.querySelector('#hero-h1');
+          if (h) window.__heroSamples.push([Math.round(performance.now() - t0), +getComputedStyle(h).opacity]);
+          if (performance.now() - t0 < 2500) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      await lcpPage.goto(BASE, { waitUntil: 'load' });
+      await lcpPage.waitForTimeout(2700);
+      const samples = await lcpPage.evaluate(() => window.__heroSamples);
+      const dips = samples.filter(([, op]) => op < 0.9);
+      check('the hero headline is never erased after it is painted',
+        dips.length === 0,
+        dips.length ? `opacity under 0.9 from ${dips[0][0]}ms to ${dips[dips.length - 1][0]}ms (${dips.length} frames)` : '');
+      check('and it is solid within the first half second',
+        samples.length > 0 && samples.some(([t, op]) => t < 500 && op > 0.99),
+        JSON.stringify(samples.slice(0, 3)));
+      await lcpCtx.close();
+    }
+
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     watch(page, 'desktop/pl', noise);

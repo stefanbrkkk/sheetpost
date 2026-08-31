@@ -324,7 +324,10 @@
 .plans-toggle button[aria-pressed="true"] { color: var(--p-bg); border-color: transparent; background: var(--p-ink); }
 .pricing-note { margin-top: 20px; font-family: var(--font-m); font-size: var(--fs-mini); color: var(--p-lo); max-width: 76ch; }
 .pricing-note + .pricing-note { margin-top: 8px; }
-@media (max-width: 1020px) {
+/* 1080px, matching the width at which the header gives up its links. At 1020
+   each of the four plans was about 228px wide, which is narrower than its own
+   feature list wants to be. */
+@media (max-width: 1080px) {
   .plans { grid-template-columns: 1fr 1fr; }
   .plan-hot { transform: none; }
 }

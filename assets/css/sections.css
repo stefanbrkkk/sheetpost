@@ -277,7 +277,9 @@
   border-radius: 2px; background: var(--acc); opacity: 0;
   transition: opacity var(--d2) ease;
 }
-.wall-row:hover { border-color: var(--line-hi); background: var(--bg-2); transform: translateX(3px); }
+/* Same reasoning as .ticker: a mandate row is information, not a link, so it
+   highlights on hover without sliding as though it were about to open. */
+.wall-row:hover { border-color: var(--line-hi); background: var(--bg-2); }
 .wall-row:hover::before { opacity: 1; }
 .wall-row > span:not(.st) { font-size: 0.92rem; color: var(--fg); }
 .wall-row .w-country { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--fg-hi); }

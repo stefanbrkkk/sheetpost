@@ -18,6 +18,29 @@
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: preferences just don't persist */ } }
   };
 
+  /* Anything already on screen is marked revealed BEFORE .no-js comes off,
+     in this same task, so the browser never gets a frame in between.
+
+     Without this the largest element on the page went transparent right after
+     it had already been painted: the markup ships with html.no-js, which
+     forces [data-reveal] visible, and dropping that class handed those
+     elements back to `[data-reveal] { opacity: 0 }` until an
+     IntersectionObserver callback could add .in a frame or two later. The
+     hero headline measured opacity 0 at 377ms, under 0.5 until 612ms and only
+     settled at about 1059ms: painted, erased, then faded back in. That is the
+     LCP element, and the erasing was free of charge.
+
+     Off-screen elements are untouched and still animate in on scroll, and the
+     hero's own intro still plays: it animates the headline's line masks by
+     transform, and its supporting copy has its own tweens. */
+  (function () {
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    var onscreen = document.querySelectorAll('[data-reveal]');
+    for (var i = 0; i < onscreen.length; i++) {
+      var r = onscreen[i].getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > 0) onscreen[i].classList.add('in');
+    }
+  })();
   document.documentElement.classList.remove('no-js');
 
   /* ---------------- language engine ---------------- */
@@ -50,7 +73,16 @@
     },
     en: function (n) { return n === 1 ? 0 : 2; }
   };
-  PLURAL.hr = PLURAL.pl;
+  /* Croatian is not Polish here. Polish takes the "one" form only at exactly
+     1; Croatian takes it whenever n % 10 is 1 and n % 100 is not 11, so 21,
+     31 and 101 are "one" forms. Borrowing the Polish selector put 21 into the
+     many form. */
+  PLURAL.hr = function (n) {
+    var m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 0;
+    if (m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14)) return 1;
+    return 2;
+  };
   PLURAL.de = PLURAL.en;
 
   function t(key, vars) {
@@ -193,7 +225,7 @@
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-    revealEls.forEach(function (el) { io.observe(el); });
+    revealEls.forEach(function (el) { if (!el.classList.contains('in')) io.observe(el); });
   } else {
     revealEls.forEach(function (el) { el.classList.add('in'); });
   }
