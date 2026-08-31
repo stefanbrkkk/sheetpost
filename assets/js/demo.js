@@ -931,6 +931,7 @@
   }
   function showGate() {
     gate.classList.add('show');
+    document.documentElement.classList.add('is-locked');
     document.body.style.overflow = 'hidden';
     setInert(true);
     var st = gate.querySelector('.stamp');
@@ -940,6 +941,7 @@
   }
   function hideGate() {
     gate.classList.remove('show');
+    document.documentElement.classList.remove('is-locked');
     document.body.style.overflow = '';
     setInert(false);
     var back = $('#btn-to-send');
@@ -976,8 +978,16 @@
       if (!em.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.value)) { em.setAttribute('aria-invalid', 'true'); return; }
       em.removeAttribute('aria-invalid');
       store.set('sp_lead_email', em.value);
-      grantBonus();
-      onBonus();
+      /* grantBonus() reports whether the unlock was still available. Ignoring
+         it meant re-submitting any address re-ran the filing every time, so
+         the gate could be walked straight through for ever. */
+      if (grantBonus()) {
+        onBonus();
+      } else {
+        var used = $('#gate-used');
+        if (used) { used.textContent = t('gate_used'); used.hidden = false; }
+        em.setAttribute('aria-invalid', 'true');
+      }
     });
   }
 
@@ -989,8 +999,9 @@
        the confirmation the visitor just earned */
     if (lead) lead.textContent = t('d_bonus') + ' · ' + t('d_bonus_mail', { mail: em });
     runsLabel();
-    /* resume the filing the visitor was trying to make */
-    if (state.xml && !sending) doSend();
+    /* resume the filing the visitor was trying to make, but only if the
+       unlock actually left them a run to spend */
+    if (state.xml && !sending && runsLeft() > 0) doSend();
   }
   window.SPDemo = { onBonus: onBonus };
 

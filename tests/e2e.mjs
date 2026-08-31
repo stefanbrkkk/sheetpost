@@ -469,12 +469,46 @@ try {
     check('the run counter still updates next to it', after.runs.length > 0, after.runs);
     check('the filing the visitor asked for resumes', after.upo);
 
-    /* the bonus is worth three runs, once */
-    const grant = await page.evaluate(() => {
-      localStorage.setItem('sp_runs', '9');
-      return localStorage.getItem('sp_bonus');
-    });
+    /* The bonus is worth three runs, once.
+
+       The old assertion here read the sp_bonus flag and stopped. The flag was
+       being written correctly the whole time and the paywall still did not
+       hold: the submit handler called grantBonus() and threw the return value
+       away, so every resubmission ran onBonus(), which hid the gate and filed
+       again. Test the walk-through instead of the bookkeeping. */
+    const grant = await page.evaluate(() => localStorage.getItem('sp_bonus'));
     check('the bonus grant is recorded so it cannot be farmed', grant === '1', grant);
+
+    await page.evaluate(() => { localStorage.setItem('sp_runs', '9'); });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1400);
+    await page.evaluate(() => document.querySelector('#demo').scrollIntoView());
+    await page.waitForTimeout(300);
+    await page.click('[role="tab"][aria-controls="d-send"]').catch(() => {});
+    await page.waitForTimeout(300);
+    const reopened = await page.evaluate(() => {
+      const el = document.querySelector('#gate');
+      el.hidden = false; el.classList.add('show');
+      return el.classList.contains('show');
+    });
+    check('the gate can be reached again once the runs are spent', reopened);
+
+    await page.fill('#gate-email', 'second@example.com');
+    await page.click('#gate-form button[type="submit"]');
+    await page.waitForTimeout(1200);
+    const second = await page.evaluate(() => ({
+      stillOpen: document.querySelector('#gate').classList.contains('show'),
+      told: !document.querySelector('#gate-used').hidden,
+      message: document.querySelector('#gate-used').textContent,
+      runs: localStorage.getItem('sp_runs'),
+      upo: document.querySelector('#upo').classList.contains('show'),
+    }));
+    check('a second address does not buy more runs',
+      second.runs === '9', `sp_runs=${second.runs}`);
+    check('the gate stays open instead of letting the visitor through',
+      second.stillOpen, JSON.stringify(second));
+    check('and says why, rather than failing silently',
+      second.told && second.message.length > 10, second.message);
 
     await ctx.close();
   }
@@ -864,8 +898,22 @@ try {
     await page.waitForTimeout(300);
     check('the burger opens the menu', await page.isVisible('#menu'));
     check('the burger reports its state', (await page.getAttribute('#burger', 'aria-expanded')) === 'true');
-    check('the page behind the menu is scroll locked',
-      (await page.evaluate(() => document.body.style.overflow)) === 'hidden');
+    /* The old assertion read document.body.style.overflow, which only proved a
+       property had been assigned. It had been assigned for months and did
+       nothing: overflow propagates from body to the viewport only while the
+       root's own overflow is visible, and this root sets overflow-x: clip. So
+       try to scroll and see whether the page moves. */
+    const beforeLock = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, 500);          /* real input: scripted scrolling
+                                                is not what overflow blocks */
+    await page.waitForTimeout(250);
+    const menuLock = await page.evaluate((before) => ({
+      before, after: window.scrollY,
+      locked: document.documentElement.classList.contains('is-locked'),
+    }), beforeLock);
+    check('the page behind the menu really cannot scroll',
+      menuLock.after === menuLock.before && menuLock.locked, JSON.stringify(menuLock));
 
     /* The menu's CTA is an <a> inside .menu, so an unscoped `.menu a` rule
        outranks .btn-primary and repaints the button as a nav link: link
@@ -893,14 +941,25 @@ try {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(250);
     check('Escape closes the menu', await page.isHidden('#menu'));
-    check('the scroll lock is released', (await page.evaluate(() => document.body.style.overflow)) === '');
+    const beforeRelease = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, 400);
+    await page.waitForTimeout(250);
+    const released = await page.evaluate((before) => ({
+      moved: window.scrollY !== before,
+      locked: document.documentElement.classList.contains('is-locked'),
+    }), beforeRelease);
+    check('and scrolling works again once it closes', released.moved && !released.locked,
+      JSON.stringify(released));
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
 
     await page.click('#burger');
     await page.waitForTimeout(250);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(400);
     check('growing past the breakpoint closes the menu', await page.isHidden('#menu'));
-    check('and releases the scroll lock', (await page.evaluate(() => document.body.style.overflow)) === '');
+    check('and releases the scroll lock',
+      (await page.evaluate(() => !document.documentElement.classList.contains('is-locked'))));
 
     await ctx.close();
   }

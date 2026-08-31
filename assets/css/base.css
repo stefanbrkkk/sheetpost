@@ -156,6 +156,16 @@ pre, code, kbd, samp {
 }
 [data-reveal].in { opacity: 1; transform: none; }
 
+/* Locking the page behind a modal.
+
+   `body { overflow: hidden }` is the usual trick and it does nothing here:
+   overflow only propagates from body to the viewport while the root element's
+   own overflow is visible, and this root sets `overflow-x: clip` to contain
+   the wide sections. So the demo gate and the mobile menu were both setting a
+   property that could not take effect, and the page kept scrolling behind
+   them. The root is the scroll container, so the root is what gets locked. */
+html.is-locked, html.is-locked body { overflow: hidden; }
+
 /* scrollbar (webkit, subtle) */
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 99px; border: 2px solid var(--bg-0); }

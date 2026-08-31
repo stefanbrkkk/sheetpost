@@ -220,6 +220,11 @@
     menu.hidden = !open;
     menu.classList.toggle('open', open);
     burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    /* the root is the scroll container here, because it sets overflow-x: clip
+       to contain the wide sections, and overflow only propagates from body to
+       the viewport while the root's own overflow is visible. Setting it on
+       body alone left the page scrolling behind the open menu. */
+    document.documentElement.classList.toggle('is-locked', open);
     document.body.style.overflow = open ? 'hidden' : '';
     setBackgroundInert(open);
     if (open) {
