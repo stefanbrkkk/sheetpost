@@ -458,6 +458,16 @@
         list.push(payload);
         store.set('sp_waitlist', JSON.stringify(list));
         if (ok) {
+          /* Say what actually happened. With no endpoint configured the
+             address never leaves the browser, so promising "you are on the
+             list" is a promise nothing can keep. The launch copy comes back
+             on its own the moment formEndpoint is set. */
+          var okText = ok.querySelector('[data-i18n]');
+          if (okText) {
+            var key = FORM_ENDPOINT ? 'cta_ok' : 'cta_ok_local';
+            okText.setAttribute('data-i18n', key);
+            okText.textContent = t(key);
+          }
           ok.hidden = false;
           ok.classList.add('show');
           /* the focused button is about to be disabled: hand focus to the

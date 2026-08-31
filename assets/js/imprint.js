@@ -44,4 +44,30 @@
     var v = c[el.getAttribute('data-config')];
     if (v) el.textContent = v;
   });
+
+  /* The Organization node in the structured data describes the same legal
+     entity as the footer imprint, so it is filled from the same place rather
+     than being maintained twice and drifting. It stays as it is until the
+     identity is configured: an Organization claiming a legalName and a taxID
+     it does not have is worse than one that simply omits them. */
+  if (complete) {
+    var ld = document.querySelector('script[type="application/ld+json"]');
+    if (ld) {
+      try {
+        var data = JSON.parse(ld.textContent);
+        var org = (data['@graph'] || []).filter(function (n) { return n['@type'] === 'Organization'; })[0];
+        if (org) {
+          org.legalName = c.legalName;
+          org.taxID = c.taxId;
+          org.identifier = c.registryNo;
+          org.address = {
+            '@type': 'PostalAddress',
+            streetAddress: c.address,
+            addressCountry: 'RS'
+          };
+          ld.textContent = JSON.stringify(data);
+        }
+      } catch (e) { /* malformed JSON-LD is caught by npm run check, not here */ }
+    }
+  }
 })();

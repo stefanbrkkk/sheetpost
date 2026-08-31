@@ -423,8 +423,18 @@
   box-shadow: 0 6px 24px rgba(0,0,0,.45);
 }
 .morph-range {
-  position: absolute; inset: 0; z-index: 4;
-  width: 100%; height: 100%;
+  /* A band across the middle, not the whole panel.
+
+     `inset: 0` put an invisible input on top of everything in the split view,
+     so neither side's text could be selected or copied: the reader could see
+     the invoice and the XML side by side and not take a line out of either.
+     The band keeps the drag where the grip is, the divider itself stays
+     draggable along its full height, and the content underneath is content
+     again. */
+  position: absolute; z-index: 4;
+  left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 100%; height: 84px;
   opacity: 0; cursor: ew-resize; margin: 0;
   -webkit-appearance: none; appearance: none;
   background: transparent;
