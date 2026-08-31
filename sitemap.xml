@@ -12,7 +12,9 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  <url><loc>https://sheetpost.app/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://sheetpost.app/terms.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://sheetpost.app/cookies.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <!-- privacy.html, terms.html and cookies.html are deliberately absent.
+       They declare <meta name="robots" content="noindex, follow">, and
+       submitting a noindex URL in a sitemap asks the crawler to index a page
+       that refuses to be indexed. Search Console reports that as an error.
+       They stay reachable and link-following through the footer. -->
 </urlset>

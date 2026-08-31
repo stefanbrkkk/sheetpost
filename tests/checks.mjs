@@ -246,6 +246,66 @@ section('Structured data and config files');
 }
 
 /* ---------- 6. every local reference resolves ---------- */
+section('SEO');
+{
+  const robots = existsSync(join(ROOT, 'robots.txt')) ? read('robots.txt') : '';
+  assert(robots.length > 0, 'robots.txt exists');
+  assert(/Sitemap:\s*https:\/\//.test(robots), 'robots.txt points at the sitemap');
+
+  /* Blocking a script or stylesheet the page needs to render makes the crawler
+     see a different page than the reader does. /assets/js/vendor/ was disallowed
+     once, which meant Googlebot rendered the site down its no-JS branch. */
+  const disallows = [...robots.matchAll(/^\s*Disallow:\s*(\S+)/gim)].map((m) => m[1]);
+  const blocksRender = disallows.filter((d) => d !== '' &&
+    (/\.(js|css|woff2?|svg|png|jpe?g)$/i.test(d) || /assets|css|js|fonts|img/i.test(d)));
+  assert(blocksRender.length === 0,
+    'robots.txt does not block anything the page needs to render', blocksRender.join(', '));
+
+  /* A sitemap is a request to index. A noindex page is a refusal. Submitting
+     one is reported as an error in Search Console. */
+  const sitemap = read('sitemap.xml');
+  const locs = [...sitemap.matchAll(/<loc>https:\/\/sheetpost\.app\/([^<]*)<\/loc>/g)].map((m) => m[1]);
+  const noindexed = locs.filter((l) => {
+    const f = l.split('?')[0] || 'index.html';
+    if (!existsSync(join(ROOT, f))) return false;
+    return /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(read(f));
+  });
+  assert(noindexed.length === 0,
+    'the sitemap does not submit any page that declares noindex', noindexed.join(', '));
+
+  /* Every page a reader can land on states which URL it is. */
+  const noCanonical = PAGES.filter((f) => f !== '404.html' && !/rel=["']canonical["']/.test(read(f)));
+  assert(noCanonical.length === 0, 'every indexable page declares a canonical URL', noCanonical.join(', '));
+
+  /* hreflang has to be reciprocal with the sitemap, or the two disagree about
+     which translations exist. */
+  const htmlAlts = [...read('index.html').matchAll(/hreflang="([a-z-]+)"/g)].map((m) => m[1]).sort();
+  const mapAlts = [...sitemap.matchAll(/hreflang="([a-z-]+)"/g)].map((m) => m[1]).sort();
+  assert(htmlAlts.length > 0 && htmlAlts.join(',') === mapAlts.join(','),
+    'hreflang in the markup and in the sitemap agree',
+    `markup: ${htmlAlts.join(', ')}\nsitemap: ${mapAlts.join(', ')}`);
+
+  /* A share card that 404s is worse than none: the platform shows a blank box. */
+  const head = read('index.html');
+  const social = [...head.matchAll(/<meta[^>]+(?:property="og:image"|name="twitter:image")[^>]+content="([^"]+)"/g)]
+    .map((m) => m[1]);
+  assert(social.length >= 2, 'the page declares an Open Graph and a Twitter image');
+  const missingSocial = social
+    .map((u) => u.replace('https://sheetpost.app/', ''))
+    .filter((f) => !existsSync(join(ROOT, f)));
+  assert(missingSocial.length === 0, 'every social share image exists', missingSocial.join(', '));
+
+  /* Dead vendor weight ships to every visitor and is easy to forget about. */
+  const vendorDir = join(ROOT, 'assets/js/vendor');
+  if (existsSync(vendorDir)) {
+    const corpus = [...PAGES.map(read),
+      ...readdirSync(join(ROOT, 'assets/js')).filter((f) => f.endsWith('.js'))
+        .map((f) => read(`assets/js/${f}`))].join('\n');
+    const dead = readdirSync(vendorDir).filter((f) => !corpus.includes(f));
+    assert(dead.length === 0, 'no unreferenced libraries in assets/js/vendor', dead.join(', '));
+  }
+}
+
 section('Local references');
 {
   const missing = [];

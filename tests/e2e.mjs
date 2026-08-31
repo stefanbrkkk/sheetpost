@@ -68,6 +68,19 @@ window.__spContrast = (root) => {
 `;
 
 /* installs the scanner, then runs it over the whole page or one subtree */
+/* The header hides itself on scroll down and comes back on scroll up, so any
+   test that reaches for a header control while the page is scrolled has to do
+   what a reader would do and bring it back first. Until the intro stopped
+   leaving an inline transform on .nav, that inline style silently outranked
+   .nav.hide and the header never actually hid, which is why this was not
+   needed before. */
+async function showNav(page) {
+  await page.evaluate(() => window.scrollBy({ top: -160, behavior: 'instant' }));
+  await page.waitForFunction(() => !document.querySelector('.nav').classList.contains('hide'),
+    null, { timeout: 4000 });
+  await page.waitForTimeout(320);
+}
+
 async function contrastIssues(page, selector) {
   await page.evaluate(CONTRAST_SRC);
   return page.evaluate(
@@ -182,12 +195,47 @@ try {
     const prog = await page.evaluate(() => getComputedStyle(document.querySelector('#scroll-progress')).transform);
     check('reading progress reaches the end', /matrix\(1,/.test(prog) || prog.startsWith('matrix(0.9'), prog);
 
+
+    /* Nothing the intro animates may be left invisible, and nothing may be
+       left with an inline opacity.
+
+       `gsap.from()` infers its end value by reading the element's current
+       style and then bakes the result into an inline style that outlives the
+       tween. When the inference goes wrong the element is stranded at the
+       tween's start values forever, and no existing check noticed, because a
+       transparent element still has a layout box, still has a colour, and
+       still passes contrast: the header's primary CTA sat at opacity 0 on
+       every desktop load. Assert the settled state, and assert the residue
+       that causes it. */
+    const introTargets = await page.evaluate(() => {
+      const SELECTORS = ['.nav', '#nav .brand', '#nav .nav-links a', '#nav .nav-right > *',
+        '#hero-h1 .hl-i', '.hero-copy .chip', '.hero-sub', '.hero-cta .btn',
+        '.hero-meta', '#machine', '.hero-scroll'];
+      const faint = [];
+      const residue = [];
+      for (const sel of SELECTORS) {
+        for (const el of document.querySelectorAll(sel)) {
+          if (el.offsetParent === null && el !== document.querySelector('.nav')) continue;
+          const op = +getComputedStyle(el).opacity;
+          const name = `${sel} -> ${el.tagName}.${(el.className || '').toString().split(' ')[0]}`;
+          if (op < 0.99) faint.push(`${name} = ${op}`);
+          if (el.style && el.style.opacity !== '') residue.push(`${name} inline opacity=${el.style.opacity}`);
+        }
+      }
+      return { faint, residue };
+    });
+    check('nothing the intro animates is left invisible',
+      introTargets.faint.length === 0, introTargets.faint.join('\n'));
+    check('the intro leaves no inline opacity behind to be misread later',
+      introTargets.residue.length === 0, introTargets.residue.join('\n'));
+
     await ctx.close();
   }
 
   /* =========================================================
      2. LANGUAGE
      ========================================================= */
+
   group('2. Language switching');
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -262,6 +310,7 @@ try {
     await page.waitForTimeout(200);
     check('EUR toggle switches the amount and the unit', /9\s*€/.test(await price()), await price());
 
+    await showNav(page);
     await page.click('.langs button[data-lang="de"]');
     await page.waitForTimeout(300);
     check('a language switch respects a manual currency choice', /9\s*€/.test(await price()), await price());
@@ -670,6 +719,7 @@ try {
     await page2.click('.plans-toggle button[data-cur="ron"]');
     await page2.waitForTimeout(300);
     const plText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
+    await showNav(page2);
     await page2.click('.langs button[data-lang="de"]');
     await page2.waitForTimeout(600);
     const deText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
@@ -691,6 +741,9 @@ try {
     await page.waitForTimeout(1600);
 
     for (const [sel, id] of [['#mandates', 'mandates'], ['#how', 'how'], ['#demo', 'demo'], ['#pricing', 'pricing'], ['#faq', 'faq']]) {
+      /* each jump scrolls down, which hides the header; a reader scrolls up to
+         reach for the next link, so the test does too */
+      await showNav(page);
       await page.click(`.nav-links a[href="${sel}"]`);
       await page.waitForTimeout(900);
       const clear = await page.evaluate((i) => {
@@ -763,12 +816,42 @@ try {
     check('the header never goes illegible while it changes worlds',
       flip.ratio >= 4.5, JSON.stringify(flip));
 
+    /* Hide on scroll down, return on scroll up. This was designed but did not
+       work: the intro tween left an inline transform on .nav, and an inline
+       transform outranks the .nav.hide class, so the header never moved. */
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+    const navAtTop = await page.evaluate(() => ({
+      hidden: document.querySelector('.nav').classList.contains('hide'),
+      inlineTransform: document.querySelector('.nav').style.transform || '',
+    }));
+    check('the header is visible at the top of the page', navAtTop.hidden === false);
+    check('and carries no inline transform that would outrank its own hide rule',
+      navAtTop.inlineTransform === '', navAtTop.inlineTransform);
+
+    await page.evaluate(() => window.scrollTo({ top: 1400, behavior: 'instant' }));
+    await page.waitForTimeout(200);
+    await page.evaluate(() => window.scrollTo({ top: 2200, behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    const navDown = await page.evaluate(() => {
+      const n = document.querySelector('.nav');
+      return { hidden: n.classList.contains('hide'), top: Math.round(n.getBoundingClientRect().bottom) };
+    });
+    check('scrolling down hides the header', navDown.hidden === true && navDown.top <= 2,
+      JSON.stringify(navDown));
+
+    await page.evaluate(() => window.scrollBy({ top: -300, behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    const navUp = await page.evaluate(() => {
+      const n = document.querySelector('.nav');
+      return { hidden: n.classList.contains('hide'), bottom: Math.round(n.getBoundingClientRect().bottom) };
+    });
+    check('scrolling back up returns it', navUp.hidden === false && navUp.bottom > 20,
+      JSON.stringify(navUp));
+
     await ctx.close();
   }
 
-  /* =========================================================
-     9. MOBILE MENU
-     ========================================================= */
   group('9. Mobile menu');
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -1453,6 +1536,7 @@ try {
     });
     await page.goto(BASE, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1800);
+    await showNav(page);
     await page.click('.langs button[data-lang="en"]');
     await page.waitForTimeout(300);
     await page.click('#btn-sample');

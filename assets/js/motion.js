@@ -688,8 +688,24 @@
     if (reduced || !hasGsap) return;
 
     var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.from('.nav', { yPercent: -100, duration: 0.55 }, 0)
-      .from('#nav .brand, #nav .nav-links a, #nav .nav-right > *', { opacity: 0, y: -8, stagger: 0.04, duration: 0.4 }, 0.1);
+    /* fromTo, not from, and clearProps after.
+
+       `from` infers the end value by reading the element's current style, and
+       then bakes whatever it inferred into an inline style that outlives the
+       tween. The header's CTA was ending at opacity 0 on every desktop load
+       because of it: the primary call to action, invisible, with the tween's
+       own start values frozen into the element. Under CPU throttling it froze
+       at 0.0533 and 0.0238 on successive runs, which is the signature of an
+       inferred end value read off an element that was already moving.
+
+       Declaring both ends removes the inference, and clearProps removes the
+       inline style once the tween is done, so nothing survives to be read
+       wrongly later. Every hero tween in this timeline already did this; the
+       header was the one that did not. */
+    tl.fromTo('.nav', { yPercent: -100 }, { yPercent: 0, duration: 0.55, clearProps: 'transform' }, 0)
+      .fromTo('#nav .brand, #nav .nav-links a, #nav .nav-right > *',
+        { opacity: 0, y: -8 },
+        { opacity: 1, y: 0, stagger: 0.04, duration: 0.4, clearProps: 'opacity,transform' }, 0.1);
 
     var lines = $$('#hero-h1 .hl-i');
     if (lines.length) {
