@@ -820,6 +820,158 @@ try {
   }
 
   /* =========================================================
+     10b. THE FOLD (the guarantee certificate)
+     ========================================================= */
+  group('10b. The fold');
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    watch(page, 'fold', noise);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1800);
+
+    const geo = await page.evaluate(() => {
+      const s = document.querySelector('#fold');
+      const st = ScrollTrigger.getAll().find((x) => x.trigger === s);
+      return {
+        vh: window.innerHeight,
+        sectionH: s.offsetHeight,
+        docH: document.body.scrollHeight,
+        start: st ? st.start : null,
+        end: st ? st.end : null,
+      };
+    });
+
+    /* A section that costs the reader more than about a screen and a third is
+       a section they have to sit through. This one used to be 1.6 viewports
+       and 11% of the whole page, for a choreography that could be told in
+       less. The budget is the point of the test. */
+    check('the fold costs no more than 1.4 viewports of scrolling',
+      geo.sectionH / geo.vh <= 1.4, (geo.sectionH / geo.vh).toFixed(2) + ' viewports');
+    check('the fold is under a tenth of the page height',
+      geo.sectionH / geo.docH <= 0.10, ((geo.sectionH / geo.docH) * 100).toFixed(1) + '%');
+    check('the fold builds a scroll trigger', geo.start !== null && geo.end > geo.start);
+
+    /* The real complaint was not the length, it was the dead air: half the old
+       runway moved one rectangle while everything else sat at opacity 0, and
+       the last quarter drew a signature over a composition already finished.
+       Sample the whole range and require that every step changes something. */
+    const SAMPLES = 24;
+    const frames = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }),
+        geo.start + ((geo.end - geo.start) * i) / SAMPLES);
+      await page.waitForTimeout(120);
+      frames.push(await page.evaluate(() => {
+        const q = (sel) => document.querySelector(sel);
+        const cs = (sel) => getComputedStyle(q(sel));
+        const r2 = (v) => Math.round(v * 100) / 100;
+        return {
+          sheet: cs('#fold-sheet').transform,
+          guilloche: r2(+cs('#fold-sheet > .guilloche').opacity),
+          head: cs('#fold .fold-head').clipPath,
+          h2: r2(+cs('#fold h2').opacity),
+          lede: r2(+cs('#fold .lede').opacity),
+          trust: [...document.querySelectorAll('#fold .trust-list li')]
+            .map((e) => r2(+getComputedStyle(e).opacity)).join(','),
+          card: r2(+cs('#lockcard').opacity) + '/' + cs('#lockcard').transform,
+          seal: r2(+cs('#fold .lockcard-seal').opacity),
+          ring: r2(+cs('#fold .lockcard-ring').opacity),
+          note: r2(+cs('#fold .locknote').opacity),
+          foot: cs('#fold .fold-foot').clipPath,
+          sig: Math.round(parseFloat(cs('#fold .fold-scribble path').strokeDashoffset) || 0),
+        };
+      }));
+    }
+
+    /* Between each pair of samples, which channels actually moved. */
+    const CHANNELS = Object.keys(frames[0]);
+    const moved = [];
+    for (let i = 1; i < frames.length; i++) {
+      moved.push(CHANNELS.filter((k) => frames[i][k] !== frames[i - 1][k]));
+    }
+    const stepPx = (geo.end - geo.start) / SAMPLES;
+    const longestRun = (pred) => {
+      let run = 0, worst = 0, at = 0;
+      for (let i = 0; i < moved.length; i++) {
+        if (pred(moved[i])) { run += 1; if (run > worst) { worst = run; at = Math.round(((i + 1 - run) / SAMPLES) * 100); } }
+        else run = 0;
+      }
+      return { worst, at, px: Math.round(worst * stepPx) };
+    };
+
+    const frozen = longestRun((m) => m.length === 0);
+    check('no stretch of the fold scrolls with nothing changing at all',
+      frozen.px <= Math.round(stepPx) + 1,
+      `${frozen.px}px frozen from ${frozen.at}%`);
+
+    /* This is the assertion that encodes the actual complaint. The section used
+       to spend its first 720px translating one rectangle with every other
+       element still at opacity 0, then its last 330px drawing a signature over
+       a finished composition. Both stretches technically "changed something"
+       every frame, so a freeze test would have passed them happily. What makes
+       a scroll section feel padded is a long run where only ONE thing is
+       moving. Budget that directly. */
+    const soloPx = Math.round(geo.vh * 0.42);
+    const solo = longestRun((m) => m.length === 1);
+    check('the fold never spends long with only one element animating',
+      solo.px <= soloPx,
+      `${solo.px}px from ${solo.at}% with only [${moved[Math.max(0, Math.round((solo.at / 100) * SAMPLES))] || ''}] moving, budget ${soloPx}px`);
+
+    /* the payoff has to be reached, and scrubbing back has to undo it */
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.end);
+    await page.waitForTimeout(700);
+    const landed = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const o = (sel) => r2(+getComputedStyle(document.querySelector(sel)).opacity);
+      return {
+        seal: o('#fold .lockcard-seal'),
+        card: o('#lockcard'),
+        h2: o('#fold h2'),
+        trust: [...document.querySelectorAll('#fold .trust-list li')]
+          .map((e) => r2(+getComputedStyle(e).opacity)),
+        sig: Math.round(parseFloat(getComputedStyle(document.querySelector('#fold .fold-scribble path')).strokeDashoffset) || 0),
+        headClip: getComputedStyle(document.querySelector('#fold .fold-head')).clipPath,
+        sheet: getComputedStyle(document.querySelector('#fold-sheet')).transform,
+      };
+    });
+    check('the certificate finishes fully composed',
+      landed.seal === 1 && landed.card === 1 && landed.h2 === 1 &&
+      landed.trust.every((v) => v === 1) && landed.sig <= 2,
+      JSON.stringify(landed));
+    check('the sheet ends flat and full bleed, so the paper world continues seamlessly',
+      landed.sheet === 'none' || /matrix\(1, 0, 0, 1, 0, 0\)/.test(landed.sheet), landed.sheet);
+    /* the computed value serialises as inset(0px 0% 0px 0px), so read the
+       numbers rather than matching one spelling of "nothing is clipped" */
+    const clipInsets = (landed.headClip.match(/-?[\d.]+/g) || ['0']).map(Number);
+    check('the header band finishes unclipped',
+      landed.headClip === 'none' || clipInsets.every((v) => v <= 0.01),
+      landed.headClip);
+
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.start + (geo.end - geo.start) * 0.08);
+    await page.waitForTimeout(800);
+    const rewound = await page.evaluate(() =>
+      Math.round(+getComputedStyle(document.querySelector('#lockcard')).opacity * 100) / 100);
+    check('scrubbing back out of the fold rewinds it', rewound < 0.15, rewound);
+
+    /* the document furniture used to be pinned to top:22px of the sheet, which
+       put it behind the fixed header where no reader ever saw it */
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.end);
+    await page.waitForTimeout(600);
+    const furniture = await page.evaluate(() => {
+      const navH = document.querySelector('.nav').getBoundingClientRect().height;
+      return ['#fold .fold-caption', '#fold .fold-docno'].map((sel) => {
+        const b = document.querySelector(sel).getBoundingClientRect();
+        return { sel, top: Math.round(b.top), navH: Math.round(navH), clear: b.top >= navH };
+      });
+    });
+    check('the document furniture sits clear of the fixed header',
+      furniture.every((f) => f.clear), JSON.stringify(furniture));
+
+    await ctx.close();
+  }
+
+  /* =========================================================
      11. RESPONSIVE SWEEP
      ========================================================= */
   group('11. Responsive sweep');
@@ -845,6 +997,18 @@ try {
               const cs = getComputedStyle(e);
               if (cs.position === 'fixed' || cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowX === 'clip') return;
               if (e.closest('.marquee-wrap, .demo-bar, .xmlview, .rig-stage, .grain, .hero')) return;
+              /* An ancestor that clips its overflow is a scroll container: a
+                 child sticking out of it cannot widen the document, so it is
+                 not the overflow this check is looking for. Without this the
+                 stamp descending inside the price card reads as a page-wide
+                 overflow on a phone, which it never was. */
+              let clipped = false;
+              for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) {
+                const acs = getComputedStyle(a);
+                if (acs.overflow === 'hidden' || acs.overflow === 'clip' ||
+                    acs.overflowX === 'hidden' || acs.overflowX === 'clip') { clipped = true; break; }
+              }
+              if (clipped) return;
               wide.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]}`);
             }
           });
