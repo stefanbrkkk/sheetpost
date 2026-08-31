@@ -301,13 +301,13 @@
       var bridge = $('#fold');
       var sheetEl = $('#fold-sheet');
       if (bridge && sheetEl) {
-        /* CSS pre-hides the sheet via translateY(100%); convert that to GSAP's
-           yPercent only (clears the px component) so they never stack */
-        gsap.set(sheetEl, { y: 0, yPercent: 100 });
+        /* GSAP owns the hidden state: if this script fails, the sheet stays
+           visible (no empty-void failure mode) */
+        gsap.set(sheetEl, { yPercent: 100 });
         gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
-            trigger: bridge, start: 'top top', end: 'bottom bottom',
+            trigger: bridge, start: 'top bottom', end: 'bottom bottom',
             scrub: 0.6, invalidateOnRefresh: true
           }
         })

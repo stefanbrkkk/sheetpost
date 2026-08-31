@@ -5,7 +5,7 @@
    ============================================================ */
 
 /* ================= THE BRIDGE: document feed slide-up ================= */
-.paper-bridge { position: relative; height: 260vh; background: var(--bg-0); }
+.paper-bridge { position: relative; height: 220vh; background: var(--bg-0); }
 .bridge-stage {
   position: sticky; top: 0;
   height: 100vh; height: 100svh;
@@ -25,7 +25,6 @@
 }
 .paper-sheet {
   position: absolute; inset: 0;
-  transform: translateY(100%);
   background: var(--p-bg);
   color: var(--p-ink);
   will-change: transform;
@@ -54,7 +53,7 @@
   padding: clamp(96px, 13vh, 150px) clamp(24px, 5vw, 64px) clamp(40px, 6vh, 72px);
 }
 @media (max-width: 860px) {
-  .paper-bridge { height: 180vh; }
+  .paper-bridge { height: 170vh; }
   .fold-content { grid-template-columns: 1fr; gap: 32px; padding-top: 88px; }
 }
 @media (prefers-reduced-motion: reduce) {
