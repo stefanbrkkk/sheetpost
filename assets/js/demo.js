@@ -946,6 +946,13 @@
     if (back) back.focus({ preventScroll: true });
   }
   var gateClose = $('#gate-close');
+  /* a link out of the gate has to release the page it is holding */
+  $$('#gate a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function () { hideGate(); });
+  });
+  if (gate) {
+    gate.addEventListener('click', function (e) { if (e.target === gate) hideGate(); });
+  }
   if (gateClose) {
     gateClose.addEventListener('click', hideGate);
     document.addEventListener('keydown', function (e) {

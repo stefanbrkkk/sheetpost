@@ -190,6 +190,10 @@
           <div class="sheet-row" data-row="1"><span class="rc">2</span><span class="cell" data-t="Web design, Przykładowa sp. z o.o." data-i18n-t="m_row1">Web design, Przykładowa sp. z o.o.</span><span class="cell" data-t="1">1</span><span class="cell" data-t="1200,00">1200,00</span><span class="cell" data-t="23%">23%</span></div>
           <div class="sheet-row" data-row="2"><span class="rc">3</span><span class="cell" data-t="SEO, abonament" data-i18n-t="m_row2">SEO, abonament</span><span class="cell" data-t="1">1</span><span class="cell" data-t="800,00">800,00</span><span class="cell" data-t="23%">23%</span></div>
           <div class="sheet-row" data-row="3"><span class="rc">4</span><span class="cell" data-t="Razem" data-i18n-t="m_total">Razem</span><span class="cell"></span><span class="cell" data-t="2 000,00">2 000,00</span><span class="cell"></span></div>
+          <div class="sheet-row sheet-empty"><span class="rc">5</span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+          <div class="sheet-row sheet-empty"><span class="rc">6</span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+          <div class="sheet-row sheet-empty"><span class="rc">7</span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+          <div class="sheet-row sheet-empty"><span class="rc">8</span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
         </div>
         <div class="sheet-cursor" id="sheet-cursor" aria-hidden="true"></div>
         <div class="sheet-status mono" id="sheet-status">przykladowy_arkusz.xlsx</div>
@@ -367,6 +371,10 @@
                   <div class="sv-row sv-empty"><span class="sv-rc">8</span><span></span><span></span><span></span><span></span></div>
                   <div class="sv-row sv-empty"><span class="sv-rc">9</span><span></span><span></span><span></span><span></span></div>
                   <div class="sv-row sv-empty"><span class="sv-rc">10</span><span></span><span></span><span></span><span></span></div>
+                  <div class="sv-row sv-empty"><span class="sv-rc">11</span><span></span><span></span><span></span><span></span></div>
+                  <div class="sv-row sv-empty"><span class="sv-rc">12</span><span></span><span></span><span></span><span></span></div>
+                  <div class="sv-row sv-empty"><span class="sv-rc">13</span><span></span><span></span><span></span><span></span></div>
+                  <div class="sv-row sv-empty"><span class="sv-rc">14</span><span></span><span></span><span></span><span></span></div>
                 </div>
                 <div class="scr-foot"><span data-i18n="rig_tab">Arkusz1</span><span><span data-i18n="rig_sum">suma netto</span> <b>11 260,00</b></span></div>
                 <div class="sv-scan" id="sv-scan"></div>
@@ -425,12 +433,8 @@
             <p class="ph-app">Sheetpost</p>
             <div class="ph-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
             <p class="ph-title" data-i18n="rig_ph_title">Przyjęto przez KSeF</p>
-            <p class="ph-id">1234563218-20260831-A1B2C3D4E5-9F</p>
-            <div class="ph-rows">
-              <div class="ph-row"><span data-i18n="m_net">Netto</span><b>11 260,00</b></div>
-              <div class="ph-row"><span>VAT</span><b>2 198,00</b></div>
-              <div class="ph-row"><span data-i18n="m_total">Razem</span><b>13 458,00</b></div>
-            </div>
+            <p class="ph-total">13 458,00 <span>PLN</span></p>
+            <p class="ph-ref" data-i18n="rig_ph_ref">nr KSeF wystawiony</p>
           </div>
         </div>
       </div>
@@ -448,7 +452,7 @@
     </div>
 
     <div class="demo-stage">
-      <div class="demo-shell">
+      <div class="demo-shell" data-reveal>
         <ol class="demo-bar" aria-label="Kroki demo" data-i18n-aria="a_steps">
           <li class="dstep active" data-step="1"><span class="dn">1</span><span class="dtxt" data-i18n="dstep1">Wklej dane</span></li>
           <li class="dstep" data-step="2"><span class="dn">2</span><span class="dtxt" data-i18n="dstep2">Mapowanie</span></li>
@@ -603,7 +607,7 @@ Projekt logo	1	3200	23"></textarea>
       <h2 data-reveal data-i18n-html="morph_h2">Komputery czytają to. <em>Ty czytasz to.</em> Tłumaczymy w obie strony.</h2>
     </div>
     <div class="morph" id="morph">
-      <div class="morph-pane morph-left">
+      <div class="morph-pane morph-left" data-reveal>
         <p class="pane-tag mono" data-i18n="morph_l">co czyta urząd</p>
         <pre class="xml" id="morph-xml"><span class="x-tag">&lt;Faktura</span> xmlns=<span class="x-val">"FA(3) · KSeF 2.0"</span><span class="x-tag">&gt;</span>
   <span class="x-tag">&lt;Podmiot1&gt;</span>
@@ -618,7 +622,7 @@ Projekt logo	1	3200	23"></textarea>
   <span class="x-tag">&lt;/Fa&gt;</span>
 <span class="x-tag">&lt;/Faktura&gt;</span></pre>
       </div>
-      <div class="morph-pane morph-right">
+      <div class="morph-pane morph-right" data-reveal>
         <p class="pane-tag mono" data-i18n="morph_r">co widzisz Ty</p>
         <div class="invoice-card">
           <div class="inv-head"><span>FV/2026/08/114</span><span class="mono">2 460,00 zł</span></div>
@@ -714,7 +718,7 @@ Projekt logo	1	3200	23"></textarea>
           <a class="btn btn-primary btn-block" href="#waitlist"><span data-i18n="plan2_cta">Zablokuj cenę</span></a>
         </article>
         <article class="plan" data-reveal>
-          <p class="plan-col"><span>C</span><span>&nbsp;</span></p>
+          <p class="plan-col"><span>C</span><span data-i18n="plan3_col">WIELE FIRM</span></p>
           <p class="plan-name" data-i18n="plan3_name">Business</p>
           <p class="plan-price"><span data-price data-eur="19" data-pln="79" data-ron="95">79</span><span class="pu" data-cur-symbol> zł</span><span class="pu" data-i18n="plan_mo">/mies.</span></p>
           <p class="plan-desc" data-i18n="plan3_desc">Wiele firm i krajów w jednym kokpicie.</p>
@@ -726,7 +730,7 @@ Projekt logo	1	3200	23"></textarea>
           <a class="btn btn-ghost btn-block" href="#waitlist"><span data-i18n="plan_cta">Zapisz się</span></a>
         </article>
         <article class="plan" data-reveal>
-          <p class="plan-col"><span>D</span><span>&nbsp;</span></p>
+          <p class="plan-col"><span>D</span><span data-i18n="plan4_col">BIURA RACHUNKOWE</span></p>
           <p class="plan-name" data-i18n="plan4_name">Księgowy</p>
           <p class="plan-price"><span data-price data-eur="49" data-pln="199" data-ron="249">199</span><span class="pu" data-cur-symbol> zł</span><span class="pu" data-i18n="plan_mo">/mies.</span></p>
           <p class="plan-desc" data-i18n="plan4_desc">Biuro rachunkowe? Obsłuż 25 klientów z jednego miejsca.</p>
@@ -746,11 +750,11 @@ Projekt logo	1	3200	23"></textarea>
   <!-- ================= PARTNER ================= -->
   <section class="partner" id="partner">
     <div class="wrap partner-grid">
-      <div>
+      <div data-reveal>
         <h2 data-i18n-html="partner_h2">Biura księgowe: <em>25 klientów</em> z jednego arkusza.</h2>
         <p data-i18n="partner_p">Biura trzymają arkusze za wszystkich swoich klientów. Sheetpost zamienia je w gotowe KSeFy hurtowo, i płaci prowizję od każdego polecenia.</p>
       </div>
-      <div>
+      <div data-reveal>
         <ul class="partner-points">
           <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="partner_f1">Prowizja 20-30% od każdego płacącego klienta</span></li>
           <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span data-i18n="partner_f2">Wysyłka hurtowa i panel partnera</span></li>
@@ -763,39 +767,39 @@ Projekt logo	1	3200	23"></textarea>
 
   <!-- ================= FAQ ================= -->
   <section class="section" id="faq">
-    <div class="wrap wrap-narrow">
+    <div class="wrap faq-wrap">
       <div class="sec-head">
         <h2 data-reveal data-i18n="faq_h2">Proste odpowiedzi</h2>
       </div>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq1_q">Jak wysłać fakturę do KSeF z Excela?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq1_a">Możesz użyć bezpłatnej Aplikacji Podatnika KSeF 2.0 od Ministerstwa Finansów, przy pojedynczych fakturach w zupełności wystarczy. Przy regularnej sprzedaży wklejasz w Sheetpost wiersze z Excela, AI mapuje kolumny, każda pozycja jest walidowana względem wymogów FA(3) i wysyłana oficjalnym API. Potwierdzenie UPO trafia do Twojej skrzynki, a faktura do archiwum.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq2_q">Czy muszę przestać używać Excela lub Google Sheets?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq2_a">Nie. To cała idea: arkusz pozostaje źródłem prawdy, a Sheetpost jest warstwą tłumaczenia między nim a systemem Ministerstwa Finansów.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq3_q">Co jeśli urząd odrzuci fakturę?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq3_a">Nie powinno się to zdarzyć: każdy wiersz jest sprawdzany względem aktualnych reguł krajowych przed wysyłką. Gdyby jednak doszło do odrzucenia, przetłumaczymy błąd na ludzki język, wskażemy komórkę do poprawy i wyślemy ponownie jednym kliknięciem.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq4_q">Czym jest FA(3) i czy muszę rozumieć XML?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq4_a">FA(3) to wzór faktury elektronicznej obowiązujący w KSeF 2.0. Nie musisz go znać: pracujesz na kolumnach, które znasz od lat, a my generujemy i walidujemy dokument urzędowy za Ciebie. Podgląd XML znajdziesz w każdej chwili, jeśli lubisz wiedzieć więcej.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq5_q">Czy cena naprawdę jest zablokowana na zawsze?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq5_a">Tak. Plan fundatorski zapisujemy wprost: cena, którą masz przy rejestracji, obowiązuje dopóki trwa Twoja subskrypcja. Anulujesz jednym kliknięciem, wszystko eksportujesz w otwartych formatach.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq6_q">Które kraje są obsługiwane na starcie?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq6_a">Startujemy z Polską (KSeF 2.0, FA(3)). Następnie Chorwacja i Rumunia (językowo bliskie, mandaty już żywe), potem Niemcy (XRechnung/ZUGFeRD), a dalej kraje Peppol. Jedno konto obejmuje każdy nowy format, gdy tylko się pojawi.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq7_q">Jak wygląda RODO i moje dane?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq7_a">Demo na tej stronie działa w 100% w Twojej przeglądarce, żadne dane stąd nie wychodzą. W aplikacji arkusz przetwarzamy wyłącznie w celu wygenerowania i wysłania faktury, poświadczenia szyfrujemy, a archiwum eksportujesz w otwartych formatach kiedy chcesz.</p></div>
       </details>
-      <details class="faq-item">
+      <details class="faq-item" data-reveal>
         <summary><span data-i18n="faq8_q">Czy jest wersja dla biur księgowych?</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
         <div class="faq-body"><p data-i18n="faq8_a">Tak, plan Księgowy obejmuje 25 klientów, wysyłkę hurtową i panel partnera z prowizją 20-30% od poleceń. Napisz na partnerzy@sheetpost.app.</p></div>
       </details>
@@ -849,7 +853,7 @@ Projekt logo	1	3200	23"></textarea>
         <p class="footer-tag" data-i18n="foot_tag">siatka staje się dokumentem.</p>
       </div>
       <div>
-        <h3 class="foot-h" data-i18n="foot_nav">Nawigacja</h3>
+        <h3 class="foot-h h-label" data-i18n="foot_nav">Nawigacja</h3>
         <div class="footer-links">
           <a href="#mandates" data-i18n="nav_mandates">Mandaty</a>
           <a href="#how" data-i18n="nav_how">Jak to działa</a>
@@ -859,7 +863,7 @@ Projekt logo	1	3200	23"></textarea>
         </div>
       </div>
       <div>
-        <h3 class="foot-h" data-i18n="foot_legal">Prawne</h3>
+        <h3 class="foot-h h-label" data-i18n="foot_legal">Prawne</h3>
         <div class="footer-links">
           <a href="privacy.html" data-i18n="foot_priv">Polityka prywatności</a>
           <a href="terms.html" data-i18n="foot_terms">Regulamin</a>

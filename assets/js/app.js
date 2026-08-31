@@ -30,6 +30,25 @@
     if (el) el.setAttribute('content', value);
   }
 
+  /* Plural rules. Polish and Croatian need three forms, Romanian needs three,
+     English and German two. A dictionary value carrying "|" declares its forms
+     in the order one | few | many. */
+  var PLURAL = {
+    pl: function (n) {
+      if (n === 1) return 0;
+      var m10 = n % 10, m100 = n % 100;
+      return (m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14)) ? 1 : 2;
+    },
+    ro: function (n) {
+      if (n === 1) return 0;
+      var m100 = n % 100;
+      return (n === 0 || (m100 >= 1 && m100 <= 19)) ? 1 : 2;
+    },
+    en: function (n) { return n === 1 ? 0 : 2; }
+  };
+  PLURAL.hr = PLURAL.pl;
+  PLURAL.de = PLURAL.en;
+
   function t(key, vars) {
     var lang = document.documentElement.getAttribute('data-lang') || 'pl';
     var d = DICT[lang] || DICT.pl || {};
@@ -37,6 +56,16 @@
     if (s === undefined) s = (DICT.pl || {})[key];
     if (s === undefined) s = key;
     if (vars) {
+      if (s.indexOf('|') >= 0) {
+        var count = vars.n !== undefined ? vars.n : vars.r;
+        if (count !== undefined) {
+          var forms = s.split('|');
+          var idx = (PLURAL[lang] || PLURAL.en)(Number(count));
+          s = forms[Math.min(idx, forms.length - 1)];
+        } else {
+          s = s.split('|')[0];
+        }
+      }
       Object.keys(vars).forEach(function (k) {
         s = s.split('{' + k + '}').join(vars[k]);
       });
@@ -142,6 +171,16 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var revealEls = $$('[data-reveal]');
   if ('IntersectionObserver' in window && !reduced) {
+    /* Siblings arrive as a group, not as one flat cut: --rv is the element's
+       position among the reveals that share its parent, and base.css turns
+       that into a delay. Set through CSSOM, so the strict CSP is unaffected. */
+    var groups = new Map();
+    revealEls.forEach(function (el) {
+      var parent = el.parentElement;
+      var n = groups.get(parent) || 0;
+      groups.set(parent, n + 1);
+      if (n) el.style.setProperty('--rv', String(Math.min(n, 6)));
+    });
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }

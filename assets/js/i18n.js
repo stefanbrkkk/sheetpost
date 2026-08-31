@@ -140,7 +140,7 @@
     d_sheet: "arkusz: {name}",
     d_reading: "Czytam skoroszyt…",
     btn_sample_dl: "Pobierz przykładowy .xlsx",
-    d_parsed: "Rozpoznano {r} wierszy. Kolumny wykryte automatycznie.",
+    d_parsed: "Rozpoznano {r} wiersz. Kolumny wykryte automatycznie.|Rozpoznano {r} wiersze. Kolumny wykryte automatycznie.|Rozpoznano {r} wierszy. Kolumny wykryte automatycznie.",
     d_parse_err: "Nie rozpoznano danych. Wklej co najmniej kolumny: nazwa, netto, VAT.",
     demo_note3: "niezależne narzędzie, nie jest częścią KSeF ani MF",
     d_col_name: "nazwa towaru/usługi", d_col_qty: "ilość", d_col_unit: "cena netto", d_col_vat: "stawka VAT", d_col_skip: "pomiń",
@@ -190,7 +190,7 @@
     cta_country: "Kraj",
     cta_err_email: "Podaj poprawny adres e-mail.",
     cta_err_consent: "Zaznacz zgodę, żeby dołączyć do listy.",
-    d_inv_foot: "z Twojego arkusza · {n} pozycji · walidacja OK",
+    d_inv_foot: "z Twojego arkusza · {n} pozycja · walidacja OK|z Twojego arkusza · {n} pozycje · walidacja OK|z Twojego arkusza · {n} pozycji · walidacja OK",
     d_chkt_bad_d: "Pozycje nie sumują się poprawnie. Sprawdź ilości i ceny netto.",
     rig_a11y: "Jak Sheetpost zamienia arkusz w e-fakturę: otwarcie arkusza, mapowanie kolumn, walidacja i wysyłka do KSeF.",
     rig_kicker: "Silnik",
@@ -249,7 +249,10 @@
     col_vat: "VAT",
     lbl_nip: "NIP",
     ph_paste: "nazwa\tilość\tnetto\tVAT\nProjekt logo\t1\t3200\t23",
-    d_nip_ok: "NIP poprawny"
+    d_nip_ok: "NIP poprawny",
+    plan3_col: "WIELE FIRM",
+    plan4_col: "BIURA RACHUNKOWE",
+    rig_ph_ref: "nr KSeF wystawiony"
   };
 
   /* ------------------------------------------------ EN */
@@ -377,7 +380,7 @@
     foot_nav: "Navigation", foot_legal: "Legal",
     foot_priv: "Privacy policy", foot_terms: "Terms", foot_cookies: "Cookies",
     foot_imprint: "Sheetpost is an independent vendor tool, not affiliated with the Ministry of Finance or the Peppol network. The demo filing on this page is a simulation. Built in Serbia, tested on Polish invoices.",
-    d_parsed: "Recognized {r} rows. Columns detected automatically.",
+    d_parsed: "Recognised {r} row. Columns detected automatically.|Recognised {r} rows. Columns detected automatically.|Recognised {r} rows. Columns detected automatically.",
     d_parse_err: "Could not recognize the data. Paste at least: name, net, VAT columns.",
     demo_note3: "independent tool, not part of KSeF or the Ministry of Finance",
     btn_sample_dl: "Download a sample .xlsx", d_reading: "Reading workbook…", d_sheet: "sheet: {name}", gate_close: "Close",
@@ -428,7 +431,7 @@
     cta_country: "Country",
     cta_err_email: "Enter a valid email address.",
     cta_err_consent: "Tick the consent box to join the list.",
-    d_inv_foot: "from your sheet · {n} lines · validation OK",
+    d_inv_foot: "from your sheet · {n} line · validation OK|from your sheet · {n} lines · validation OK|from your sheet · {n} lines · validation OK",
     d_chkt_bad_d: "The lines do not add up. Check the quantities and net prices.",
     rig_a11y: "How Sheetpost turns a spreadsheet into an e-invoice: opening the sheet, mapping the columns, validating and filing to KSeF.",
     rig_kicker: "The engine",
@@ -487,7 +490,10 @@
     col_vat: "VAT",
     lbl_nip: "Tax ID (NIP)",
     ph_paste: "name\tqty\tnet\tVAT\nLogo design\t1\t3200\t23",
-    d_nip_ok: "Tax ID valid"
+    d_nip_ok: "Tax ID valid",
+    plan3_col: "MULTI ENTITY",
+    plan4_col: "ACCOUNTING OFFICES",
+    rig_ph_ref: "KSeF reference issued"
   };
 
   /* ------------------------------------------------ DE */
@@ -615,7 +621,7 @@
     foot_nav: "Navigation", foot_legal: "Rechtliches",
     foot_priv: "Datenschutz", foot_terms: "AGB", foot_cookies: "Cookies",
     foot_imprint: "Sheetpost ist ein unabhängiges Anbieterwerkzeug und weder mit dem Finanzministerium noch mit dem Peppol-Netzwerk verbunden. Die Demo-Sendung auf dieser Seite ist eine Simulation. Gebaut in Serbien, getestet mit polnischen Rechnungen.",
-    d_parsed: "{r} Zeilen erkannt. Spalten automatisch zugeordnet.",
+    d_parsed: "{r} Zeile erkannt. Spalten automatisch zugeordnet.|{r} Zeilen erkannt. Spalten automatisch zugeordnet.|{r} Zeilen erkannt. Spalten automatisch zugeordnet.",
     d_parse_err: "Daten nicht erkannt. Mindestens einfügen: Bezeichnung, Netto, USt.",
     demo_note3: "unabhängiges Werkzeug, nicht Teil von KSeF oder des Finanzministeriums",
     btn_sample_dl: "Beispiel-.xlsx laden", d_reading: "Arbeitsmappe wird gelesen…", d_sheet: "Blatt: {name}", gate_close: "Schließen",
@@ -666,7 +672,7 @@
     cta_country: "Land",
     cta_err_email: "Bitte eine gültige E-Mail-Adresse angeben.",
     cta_err_consent: "Bitte die Einwilligung setzen, um auf die Liste zu kommen.",
-    d_inv_foot: "aus deiner Tabelle · {n} Positionen · Prüfung OK",
+    d_inv_foot: "aus deiner Tabelle · {n} Position · Prüfung OK|aus deiner Tabelle · {n} Positionen · Prüfung OK|aus deiner Tabelle · {n} Positionen · Prüfung OK",
     d_chkt_bad_d: "Die Positionen summieren sich nicht. Prüfe Mengen und Nettopreise.",
     rig_a11y: "Wie Sheetpost aus einer Tabelle eine E-Rechnung macht: Tabelle öffnen, Spalten zuordnen, prüfen und an KSeF senden.",
     rig_kicker: "Die Engine",
@@ -725,7 +731,10 @@
     col_vat: "USt.",
     lbl_nip: "Steuernummer (NIP)",
     ph_paste: "Bezeichnung\tMenge\tNetto\tUSt.\nLogo-Design\t1\t3200\t23",
-    d_nip_ok: "Steuernummer gültig"
+    d_nip_ok: "Steuernummer gültig",
+    plan3_col: "MEHRERE FIRMEN",
+    plan4_col: "KANZLEIEN",
+    rig_ph_ref: "KSeF-Referenz erteilt"
   };
 
   /* ------------------------------------------------ HR */
@@ -853,7 +862,7 @@
     foot_nav: "Navigacija", foot_legal: "Pravno",
     foot_priv: "Politika privatnosti", foot_terms: "Uvjeti", foot_cookies: "Kolačići",
     foot_imprint: "Sheetpost je nezavisni alat dobavljača i nije povezan s Ministarstvom financija ni s Peppol mrežom. Demo slanje na ovoj stranici je simulacija. Izgrađeno u Srbiji, testirano na poljskim računima.",
-    d_parsed: "Prepoznato {r} redaka. Stupci prepoznati automatski.",
+    d_parsed: "Prepoznat {r} redak. Stupci otkriveni automatski.|Prepoznata {r} retka. Stupci otkriveni automatski.|Prepoznato {r} redaka. Stupci otkriveni automatski.",
     d_parse_err: "Podaci nisu prepoznati. Zalijepi barem stupce: naziv, neto, PDV.",
     demo_note3: "nezavisni alat, nije dio KSeF-a ni Ministarstva financija",
     btn_sample_dl: "Preuzmi oglednu .xlsx", d_reading: "Čitam radnu knjigu…", d_sheet: "list: {name}", gate_close: "Zatvori",
@@ -904,7 +913,7 @@
     cta_country: "Država",
     cta_err_email: "Unesi ispravnu e-mail adresu.",
     cta_err_consent: "Označi privolu da bi se pridružio listi.",
-    d_inv_foot: "iz tvoje tablice · {n} stavki · validacija OK",
+    d_inv_foot: "iz tvoje tablice · {n} stavka · validacija OK|iz tvoje tablice · {n} stavke · validacija OK|iz tvoje tablice · {n} stavki · validacija OK",
     d_chkt_bad_d: "Stavke se ne zbrajaju. Provjeri količine i neto cijene.",
     rig_a11y: "Kako Sheetpost pretvara tablicu u e-račun: otvaranje tablice, mapiranje stupaca, validacija i slanje u KSeF.",
     rig_kicker: "Motor",
@@ -963,7 +972,10 @@
     col_vat: "PDV",
     lbl_nip: "Porezni broj (NIP)",
     ph_paste: "naziv\tkoličina\tneto\tPDV\nDizajn logotipa\t1\t3200\t23",
-    d_nip_ok: "Porezni broj ispravan"
+    d_nip_ok: "Porezni broj ispravan",
+    plan3_col: "VIŠE TVRTKI",
+    plan4_col: "KNJIGOVODSTVENI SERVISI",
+    rig_ph_ref: "KSeF broj izdan"
   };
 
   /* ------------------------------------------------ RO */
@@ -1091,7 +1103,7 @@
     foot_nav: "Navigare", foot_legal: "Legal",
     foot_priv: "Politica de confidențialitate", foot_terms: "Termeni", foot_cookies: "Cookie-uri",
     foot_imprint: "Sheetpost este o unealtă independentă de furnizor și nu e afiliată Ministerului Finanțelor sau rețelei Peppol. Transmiterea demo de pe această pagină e o simulare. Construit în Serbia, testat pe facturi poloneze.",
-    d_parsed: "Am recunoscut {r} rânduri. Coloane detectate automat.",
+    d_parsed: "S-a recunoscut {r} rând. Coloane detectate automat.|S-au recunoscut {r} rânduri. Coloane detectate automat.|S-au recunoscut {r} de rânduri. Coloane detectate automat.",
     d_parse_err: "Nu am recunoscut datele. Lipește cel puțin coloanele: denumire, net, TVA.",
     demo_note3: "unealtă independentă, nu face parte din KSeF sau Ministerul Finanțelor",
     btn_sample_dl: "Descarcă un .xlsx exemplu", d_reading: "Citesc registrul de lucru…", d_sheet: "foaie: {name}", gate_close: "Închide",
@@ -1142,7 +1154,7 @@
     cta_country: "Țara",
     cta_err_email: "Introdu o adresă de e-mail validă.",
     cta_err_consent: "Bifează acordul ca să intri pe listă.",
-    d_inv_foot: "din foaia ta · {n} poziții · validare OK",
+    d_inv_foot: "din foaia ta · {n} poziție · validare OK|din foaia ta · {n} poziții · validare OK|din foaia ta · {n} de poziții · validare OK",
     d_chkt_bad_d: "Pozițiile nu se adună corect. Verifică cantitățile și prețurile nete.",
     rig_a11y: "Cum transformă Sheetpost o foaie de calcul într-o e-factură: deschiderea foii, maparea coloanelor, validarea și transmiterea către KSeF.",
     rig_kicker: "Motorul",
@@ -1201,7 +1213,10 @@
     col_vat: "TVA",
     lbl_nip: "Cod fiscal (NIP)",
     ph_paste: "denumire\tcant.\tnet\tTVA\nDesign logo\t1\t3200\t23",
-    d_nip_ok: "Cod fiscal valid"
+    d_nip_ok: "Cod fiscal valid",
+    plan3_col: "MAI MULTE FIRME",
+    plan4_col: "BIROURI DE CONTABILITATE",
+    rig_ph_ref: "referință KSeF emisă"
   };
 
   window.SP_I18N = T;

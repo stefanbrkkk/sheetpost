@@ -61,7 +61,10 @@
   --fs-h3: clamp(1.15rem, 1.6vw, 1.35rem);
   --fs-body: 1.0625rem;
   --fs-small: 0.9rem;
-  --fs-micro: 0.75rem;
+  /* the data/label register: three steps, not ten values inside four pixels */
+  --fs-micro: 0.75rem;      /* labels, chips, kickers      */
+  --fs-mini: 0.7rem;        /* dense mono data             */
+  --fs-nano: 0.64rem;       /* stamps, column heads, seals */
 
   /* ---- motion (the only easings on the page) ---- */
   --e-out: cubic-bezier(0.16, 1, 0.3, 1);

@@ -443,6 +443,18 @@ try {
     check('a title row above the header does not break parsing',
       titled && titled.map.join(',') === 'name,qty,unit,vat', titled && titled.map.join(','));
 
+    /* Polish and Croatian need three plural forms; "4 pozycji" is wrong */
+    const plurals = [];
+    for (const [rows, want] of [[1, 'wiersz.'], [3, 'wiersze.'], [7, 'wierszy.']]) {
+      const body = Array.from({ length: rows }, (_, i) => `Usługa ${i + 1}\t1\t100,00\t23`).join('\n');
+      await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+      await page.fill('#paste-area', 'Nazwa\tIlość\tCena netto\tVAT\n' + body);
+      await page.waitForTimeout(300);
+      const msg = await page.textContent('#parse-msg');
+      if (!msg.includes(want)) plurals.push(`${rows} rows -> "${msg}" (expected "${want}")`);
+    }
+    check('Polish plural forms are correct for 1 / few / many', plurals.length === 0, plurals.join('\n'));
+
     const foreign = await feed('Nazwa\tIlość\tCena netto\tVAT\nConsulting\t1\t500,00 EUR\t23');
     check('a foreign currency is rejected, not silently filed as PLN',
       foreign && foreign.pass[5] === false, JSON.stringify(foreign && foreign.text[5]));
@@ -627,6 +639,45 @@ try {
       `${beats[0].phone} -> ${beats[4].phone}`);
     check('the progress rail tracks the beats', beats[4].rail === 4, beats[4].rail);
 
+    /* the beat caption is a headline, not body text: a stray descendant
+       selector once demoted it to 11px mono */
+    const beatType = await page.evaluate(() => {
+      const h = document.querySelector('.rig-beat.on .rig-beat-h');
+      const cs = getComputedStyle(h);
+      return { size: parseFloat(cs.fontSize), family: cs.fontFamily, weight: cs.fontWeight };
+    });
+    check('the beat caption is set in the display face at headline size',
+      beatType.size >= 22 && /Bricolage/.test(beatType.family) && Number(beatType.weight) >= 700,
+      JSON.stringify(beatType));
+
+    /* the stage clips: nothing the composition needs may fall outside it,
+       at any viewport height */
+    const clipping = [];
+    for (const h of [900, 800, 760, 700]) {
+      await page.setViewportSize({ width: 1440, height: h });
+      const b2 = await page.evaluate(() => {
+        const s = document.querySelector('#rig-sec');
+        return { top: s.offsetTop, height: s.offsetHeight };
+      });
+      await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), b2.top + b2.height * 0.8);
+      await page.waitForTimeout(700);
+      const r = await page.evaluate(() => {
+        const stage = document.querySelector('.rig-stage').getBoundingClientRect();
+        const out = [];
+        ['#rig-phone', '#lap-lid', '.lap-base'].forEach((sel) => {
+          const e = document.querySelector(sel);
+          if (!e) return;
+          const b = e.getBoundingClientRect();
+          if (b.bottom > stage.bottom + 1 || b.top < stage.top - 1) out.push(`${sel} ${Math.round(b.top)}..${Math.round(b.bottom)} vs stage ${Math.round(stage.top)}..${Math.round(stage.bottom)}`);
+        });
+        return out;
+      });
+      r.forEach((x) => clipping.push(`${h}px: ${x}`));
+    }
+    check('the rig never clips its own composition', clipping.length === 0, clipping.join('\n'));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+
     /* scrubbing back must rewind, not leave the payoff on screen */
     await page.evaluate((y) => window.scrollTo(0, y), box.top + box.height * 0.05);
     await page.waitForTimeout(800);
@@ -673,6 +724,80 @@ try {
       await ctx.close();
     }
     check('no horizontal overflow at any width in pl/de/ro', problems.length === 0, problems.join('\n'));
+  }
+
+  /* =========================================================
+     11b. TYPOGRAPHY SYSTEM
+     ========================================================= */
+  group('11b. Typography');
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    watch(page, 'type', noise);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1800);
+    /* walk the whole page so lazily-revealed sections are laid out */
+    await page.evaluate(async () => {
+      const H = document.body.scrollHeight;
+      for (let i = 0; i <= 10; i++) {
+        window.scrollTo({ top: (H * i) / 10, behavior: 'instant' });
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    await page.waitForTimeout(600);
+
+    const type = await page.evaluate(() => {
+      const seen = (el) => el.offsetParent !== null || getComputedStyle(el).position === 'fixed';
+      const out = { wrongFace: [], tooSmall: [], tiny: [], families: {} };
+      const FLOOR = { H1: 34, H2: 26, H3: 17 };
+      document.querySelectorAll('h1, h2, h3, .rig-beat-h').forEach((h) => {
+        /* .h-label marks a heading deliberately set as a micro-label */
+        if (!seen(h) || h.classList.contains('sr-only') || h.classList.contains('h-label')) return;
+        const cs = getComputedStyle(h);
+        const size = parseFloat(cs.fontSize);
+        const label = `${h.tagName}.${(h.className || '').toString().split(' ')[0]} ${Math.round(size)}px`;
+        if (!/Bricolage/.test(cs.fontFamily)) out.wrongFace.push(`${label} ${cs.fontFamily}`);
+        const floor = FLOOR[h.tagName] || 22;
+        if (size < floor) out.tooSmall.push(`${label} < ${floor}`);
+      });
+      document.querySelectorAll('p, li, span, small, label, button, a, b, summary, td, th').forEach((e) => {
+        if (!seen(e)) return;
+        if (![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return;
+        /* text inside a device mock is a picture of a screen: nobody is asked
+           to read it and assistive tech never sees it */
+        const decorative = e.closest('[aria-hidden="true"]');
+        const size = parseFloat(getComputedStyle(e).fontSize);
+        if (size < (decorative ? 9 : 10)) out.tiny.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]} ${size}px "${e.textContent.trim().slice(0, 20)}"`);
+        const fam = getComputedStyle(e).fontFamily.split(',')[0].replace(/["']/g, '');
+        out.families[fam] = (out.families[fam] || 0) + 1;
+      });
+      out.tiny = [...new Set(out.tiny)];
+      return out;
+    });
+    check('every heading is set in the display face', type.wrongFace.length === 0, type.wrongFace.join('\n'));
+    check('no heading is demoted below its level floor', type.tooSmall.length === 0, type.tooSmall.join('\n'));
+    check('no visible text under 10px', type.tiny.length === 0, type.tiny.slice(0, 8).join('\n'));
+    check('the page uses exactly the three declared families',
+      Object.keys(type.families).every((f) => ['Bricolage Grotesque', 'Figtree', 'JetBrains Mono'].includes(f)),
+      Object.keys(type.families).join(', '));
+
+    /* multi-word labels must read as multiple words */
+    const wordGap = await page.evaluate(() => {
+      const el = document.querySelector('.hero-cta .btn span');
+      const cs = getComputedStyle(el);
+      const m = document.createElement('span');
+      m.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${cs.font};letter-spacing:${cs.letterSpacing};word-spacing:${cs.wordSpacing}`;
+      document.body.appendChild(m);
+      const w = (t) => { m.textContent = t; return m.getBoundingClientRect().width; };
+      const gap = w('a a') - w('aa');
+      const size = parseFloat(cs.fontSize);
+      m.remove();
+      return gap / size;
+    });
+    check('button labels have a readable word gap', wordGap >= 0.26, wordGap.toFixed(3) + 'em');
+
+    await ctx.close();
   }
 
   /* =========================================================

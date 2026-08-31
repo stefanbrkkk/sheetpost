@@ -46,6 +46,17 @@ h1 { font-size: var(--fs-h1); font-weight: 800; letter-spacing: -0.035em; line-h
 h2 { font-size: var(--fs-h2); }
 h3 { font-size: var(--fs-h3); letter-spacing: -0.01em; line-height: 1.25; }
 h1 em, h2 em { font-style: normal; color: var(--acc); }
+/* a heading deliberately set as a micro-label rather than as display type */
+.h-label {
+  font-family: var(--font-m); font-weight: 600;
+  font-size: var(--fs-micro); letter-spacing: 0.12em;
+  text-transform: uppercase; line-height: 1.4;
+}
+
+pre, code, kbd, samp {
+  font-family: var(--font-m);
+  font-variant-numeric: tabular-nums;
+}
 
 /* mono data */
 .mono {
@@ -122,7 +133,7 @@ h1 em, h2 em { font-style: normal; color: var(--acc); }
 .form-error {
   display: none;
   margin-top: 10px;
-  font-family: var(--font-m); font-size: 0.8rem;
+  font-family: var(--font-m); font-size: var(--fs-mini);
   color: var(--seal-bright);
 }
 .form-error.show { display: block; }

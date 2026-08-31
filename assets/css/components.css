@@ -10,6 +10,9 @@
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   font-weight: 600; font-size: var(--fs-small);
+  /* Figtree's space is 0.21em, which at 600 weight and button size closes up
+     hard enough that "Wypróbuj bezpłatnie" reads as one word */
+  word-spacing: 0.09em;
   border-radius: var(--r-in);
   padding: 14px 22px;
   border: 1px solid transparent;
@@ -134,7 +137,7 @@
 /* language switcher */
 .langs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-pill); }
 .langs button {
-  font-family: var(--font-m); font-size: 0.72rem; font-weight: 600;
+  font-family: var(--font-m); font-size: var(--fs-mini); font-weight: 600;
   color: var(--fg-lo); padding: 4px 8px; border-radius: var(--r-pill);
   transition: color var(--d1) ease, background var(--d1) ease;
 }
@@ -168,6 +171,7 @@ html.no-js .scroll-progress { display: none; }
 .menu.open { display: flex; }
 .menu a {
   font-family: var(--font-d); font-size: 1.8rem; font-weight: 700;
+  word-spacing: 0.04em;
   color: var(--fg-hi); padding: 10px 0; border-bottom: 1px solid var(--line);
 }
 .menu .menu-foot { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
@@ -249,7 +253,7 @@ html.no-js .scroll-progress { display: none; }
   background: var(--bg-1);
   padding: 16px 18px;
 }
-.ticker-label { font-family: var(--font-m); font-size: 0.72rem; color: var(--fg-lo); letter-spacing: 0.02em; }
+.ticker-label { font-family: var(--font-m); font-size: var(--fs-mini); color: var(--fg-lo); letter-spacing: 0.02em; }
 .ticker-clock { font-family: var(--font-m); font-size: clamp(1.1rem, 2vw, 1.5rem); font-weight: 700; color: var(--fg-hi); font-variant-numeric: tabular-nums; }
 .ticker-clock b { color: var(--acc); font-weight: 700; }
 .ticker-clock .tk-u { font-size: 0.62em; color: var(--fg-lo); margin-left: 2px; margin-right: 8px; }
@@ -277,7 +281,7 @@ html.no-js .scroll-progress { display: none; }
 .input:focus:not(:focus-visible) { outline: none; }
 .input[aria-invalid="true"] { border-color: var(--seal); background: rgba(200, 69, 47, 0.08); }
 .input:disabled { opacity: 0.5; cursor: not-allowed; }
-.hint { font-size: 0.8rem; color: var(--fg-lo); }
+.hint { font-size: var(--fs-mini); color: var(--fg-lo); }
 .hint.err { color: var(--seal-bright); }
 
 .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; color: var(--fg-lo); }
@@ -287,6 +291,9 @@ html.no-js .scroll-progress { display: none; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---------- accordion (details) ---------- */
+/* the answers keep a reading measure but start on the page's rail, so the
+   section does not appear to slide sideways */
+.faq-wrap .sec-head, .faq-wrap .faq-item { max-width: 820px; }
 .faq-item {
   border: 1px solid var(--line); border-radius: var(--r-card);
   background: var(--bg-1);
@@ -332,7 +339,7 @@ html.no-js .scroll-progress { display: none; }
 }
 .footer-links a:hover { color: var(--fg-hi); }
 .footer-tag { font-family: var(--font-m); color: var(--fg-lo); font-size: 0.85rem; margin-top: 12px; }
-.footer-fine { color: var(--fg-faint); font-size: 0.78rem; line-height: 1.7; }
+.footer-fine { color: var(--fg-faint); font-size: var(--fs-mini); line-height: 1.7; }
 .footer-bottom { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
 
 /* responsive components (ordered widest -> narrowest so the last match wins) */
@@ -348,7 +355,7 @@ html.no-js .scroll-progress { display: none; }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   .langs { display: none; }       /* langs live inside the mobile menu instead */
   .menu .langs { display: flex; }
-  .menu .langs button { padding: 11px 16px; font-size: 0.8rem; }
+  .menu .langs button { padding: 11px 16px; font-size: var(--fs-mini); }
   .menu a { font-size: 1.5rem; }
 }
 @media (max-width: 480px) {

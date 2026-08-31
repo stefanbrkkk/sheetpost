@@ -5,7 +5,7 @@
 
 .legal { padding: 140px 0 90px; }
 .legal h1 { margin-bottom: 8px; }
-.legal .up { font-family: var(--font-m); font-size: .78rem; color: var(--fg-lo); margin-bottom: 40px; }
+.legal .up { font-family: var(--font-m); font-size: var(--fs-mini); color: var(--fg-lo); margin-bottom: 40px; }
 .legal a.up { display: inline-block; }
 .legal h2 { font-size: 1.3rem; margin: 34px 0 10px; }
 .legal p, .legal li { color: var(--fg); font-size: .96rem; max-width: 70ch; }
@@ -13,11 +13,11 @@
 .legal .mono { font-size: .85rem; color: var(--acc); }
 .legal table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .88rem; }
 .legal td, .legal th { text-align: left; padding: 9px 12px; border: 1px solid var(--line); color: var(--fg); }
-.legal th { font-family: var(--font-m); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-lo); }
+.legal th { font-family: var(--font-m); font-size: var(--fs-nano); text-transform: uppercase; letter-spacing: .1em; color: var(--fg-lo); }
 
 /* document language toggle (PL/EN) */
 .doc-langs { display: flex; gap: 8px; margin-bottom: 30px; }
-.doc-langs button { font-family: var(--font-m); font-size: .75rem; padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
+.doc-langs button { font-family: var(--font-m); font-size: var(--fs-micro); padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
 .doc-langs button[aria-pressed="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
 
 /* Nothing else in this file sets `display` on a .up element, so these two

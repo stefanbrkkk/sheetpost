@@ -68,7 +68,7 @@
         var dist2 = dx * dx + dy * dy;
         var prox = Math.max(0, 1 - dist2 / (240 * 240));
         var breathe = 0.5 + 0.5 * Math.sin(t2 * 0.6 + c.ph);
-        var a = 0.028 + breathe * 0.02 + prox * 0.30;
+        var a = 0.022 + breathe * 0.014 + prox * 0.26;
         /* a still frame has no time to ease in, so land on the target */
         c.a = settle ? a : c.a + (a - c.a) * 0.14;
         ctx.fillStyle = c.a > 0.045
@@ -387,24 +387,47 @@
       };
     });
 
-    /* --- the bridge: the document feeds up over the ink world --- */
+    /* --- the bridge: the document feeds up over the ink world ---
+       The runway is 160vh, so it has to deliver more than one static frame:
+       the sheet arrives, its furniture fades in, the guarantees land one by
+       one, the card settles and the signature draws itself. --- */
     (function () {
       var bridge = $('#fold');
       var sheetEl = $('#fold-sheet');
       if (!bridge || !sheetEl) return;
-      /* GSAP owns the hidden state: if this script fails, the sheet stays
-         visible (no empty-void failure mode) */
+      var trust = $$('#fold .trust-list li');
+      var card = $('#lockcard');
+      var seal = $('#fold .lockcard-seal');
+      var scribble = $('#fold .fold-scribble path');
+      var furniture = $$('#fold .fold-caption, #fold .fold-docno, #fold .fold-foot .mono');
+
+      /* GSAP owns every hidden state: if this script fails, the sheet stays
+         visible and complete (no empty-void failure mode) */
       gsap.set(sheetEl, { yPercent: 100 });
-      gsap.timeline({
+      if (trust.length) gsap.set(trust, { opacity: 0, x: -14 });
+      if (card) gsap.set(card, { opacity: 0, y: 26, rotateZ: -2.5 });
+      if (seal) gsap.set(seal, { opacity: 0, scale: 1.5, rotate: 22 });
+      if (furniture.length) gsap.set(furniture, { opacity: 0 });
+      if (scribble) {
+        var len = scribble.getTotalLength();
+        gsap.set(scribble, { strokeDasharray: len, strokeDashoffset: len });
+      }
+
+      var tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
           trigger: bridge, start: 'top bottom', end: 'bottom bottom',
           scrub: 0.5, invalidateOnRefresh: true
         }
-      })
-        .fromTo(sheetEl, { yPercent: 100 }, { yPercent: 0 }, 0)
-        .to('.bridge-backdrop', { autoAlpha: 0, scale: 0.96, transformOrigin: '50% 100%' }, 0)
-        .fromTo('.fold-content > div', { y: 18 }, { y: 0, stagger: 0.08, duration: 0.3, ease: 'power1.out' }, 0.45);
+      });
+      tl.fromTo(sheetEl, { yPercent: 100 }, { yPercent: 0, duration: 5 }, 0)
+        .to('.bridge-backdrop', { autoAlpha: 0, scale: 0.96, transformOrigin: '50% 100%', duration: 5 }, 0)
+        .fromTo('.fold-content > div', { y: 18 }, { y: 0, stagger: 0.4, duration: 1.4, ease: 'power1.out' }, 2.2);
+      if (furniture.length) tl.to(furniture, { opacity: 1, duration: 0.9, stagger: 0.25 }, 3.4);
+      if (trust.length) tl.to(trust, { opacity: 1, x: 0, duration: 0.7, stagger: 0.35, ease: 'power2.out' }, 3.8);
+      if (card) tl.to(card, { opacity: 1, y: 0, rotateZ: 0, duration: 1.4, ease: 'power3.out' }, 3.6);
+      if (seal) tl.to(seal, { opacity: 1, scale: 1, rotate: 8, duration: 0.5, ease: 'back.out(2.2)' }, 5.4);
+      if (scribble) tl.to(scribble, { strokeDashoffset: 0, duration: 1.4, ease: 'power1.inOut' }, 5.6);
     })();
 
     /* --- lockcard tilt + sheen (fine pointers only) --- */
@@ -534,8 +557,11 @@
     }
 
     if (!inner || !lid) return;
-    gsap.set(lid, { rotateX: -104, transformOrigin: '50% 100%' });
-    gsap.set(inner, { rotateX: 16, scale: 0.86, y: 26 });
+    /* A lid at -104deg is edge-on: the first frame of the set piece rendered
+       as an empty stage. Start it part-open so a laptop is legible from the
+       moment the section pins, and let the scroll finish the movement. */
+    gsap.set(lid, { rotateX: -68, transformOrigin: '50% 100%' });
+    gsap.set(inner, { rotateX: 13, scale: 0.9, y: 18 });
     if (phone) gsap.set(phone, { opacity: 0, y: 66, rotate: 8, scale: 0.9 });
     if (stamp) gsap.set(stamp, { opacity: 0, scale: 1.7, rotate: -8 });
     if (spill) gsap.set(spill, { opacity: 0 });

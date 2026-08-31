@@ -25,3 +25,6 @@
 .docchk { opacity: 1; }
 .mapline .m-wire::before { transform: scaleX(1); }
 .scroll-progress { display: none; }
+.fold-caption, .fold-docno, .fold-foot .mono { opacity: 1; }
+.trust-list li { opacity: 1; }
+.lockcard, .lockcard-seal { opacity: 1; }

@@ -19,6 +19,8 @@
   grid-template-rows: auto 1fr;
   align-content: center;
   padding-top: 84px;
+  /* the phone hangs below the laptop: leave it room inside the clipped stage */
+  padding-bottom: clamp(28px, 7vh, 72px);
 }
 .rig-glow {
   position: absolute; inset: 0; pointer-events: none;
@@ -54,7 +56,7 @@
   will-change: opacity, transform;
 }
 .rig-beat.on { opacity: 1; visibility: visible; transform: none; }
-.rig-beat-h {
+.rig-beat .rig-beat-h {
   font-family: var(--font-d); font-weight: 800;
   letter-spacing: -0.03em; line-height: 1.06;
   color: var(--fg-hi);
@@ -62,10 +64,10 @@
   max-width: 20ch; margin-inline: auto;
   text-wrap: balance;
 }
-.rig-beat-h em { font-style: normal; color: var(--acc); }
-.rig-beat p {
+.rig-beat .rig-beat-h em { font-style: normal; color: var(--acc); }
+.rig-beat p.mono {
   margin-top: 10px; color: var(--fg-lo);
-  font-family: var(--font-m); font-size: 0.78rem; letter-spacing: 0.04em;
+  font-family: var(--font-m); font-size: var(--fs-mini); letter-spacing: 0.04em;
 }
 
 /* ---------- beat progress rail ---------- */
@@ -108,6 +110,7 @@
   transform-origin: 50% 100%;
   transform: rotateX(0deg);
   transform-style: preserve-3d;
+  backface-visibility: hidden;
   border-radius: 14px 14px 4px 4px;
   padding: 10px 10px 16px;
   background: linear-gradient(180deg, #1B241D, #10160F);
@@ -154,18 +157,22 @@
   background: rgba(6, 9, 7, 0.85);
 }
 .lap-shadow {
-  position: absolute; left: 8%; right: 8%; bottom: -34px; height: 46px;
-  background: radial-gradient(60% 50% at 50% 50%, rgba(0, 0, 0, 0.62), transparent 72%);
-  filter: blur(6px);
+  position: absolute; left: 4%; right: 4%; bottom: -40px; height: 60px;
+  background:
+    radial-gradient(58% 50% at 50% 44%, rgba(0, 0, 0, 0.7), transparent 74%),
+    radial-gradient(34% 40% at 50% 30%, rgba(62, 207, 142, 0.10), transparent 70%);
+  filter: blur(8px);
   pointer-events: none;
 }
 
 /* --- the phone that carries the receipt --- */
 .phone {
   position: absolute;
-  right: 1%; bottom: 2%;
-  width: 17.5%;
-  min-width: 118px;
+  /* the phone hangs off the laptop's corner: it must overlap the chassis,
+     never a label on the screen */
+  right: -3%; bottom: -6%;
+  width: 20%;
+  min-width: 128px;
   border-radius: 24px;
   padding: 7px;
   background: linear-gradient(160deg, #222C24, #0D120E);
@@ -177,46 +184,45 @@
 }
 .ph-screen {
   position: relative;
-  aspect-ratio: 9 / 18;
+  aspect-ratio: 9 / 17.5;
   border-radius: 18px;
   overflow: hidden;
   background: #070A08;
   display: flex; flex-direction: column;
-  padding: 15px 10px 11px;
-  gap: 5px;
+  padding: 14px 11px 14px;
 }
 .ph-notch {
   position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
   width: 34%; height: 5px; border-radius: 99px; background: rgba(206, 244, 220, 0.14);
 }
 .ph-app {
-  font-family: var(--font-m); font-size: 0.5rem; letter-spacing: 0.14em;
-  color: var(--fg-faint); text-transform: uppercase; margin-top: 6px;
+  font-family: var(--font-m); font-size: 0.56rem; letter-spacing: 0.16em;
+  color: var(--fg-faint); text-transform: uppercase; margin-top: 8px; text-align: center;
 }
 .ph-seal {
-  margin: 3px auto 1px;
-  width: 38px; height: 38px; border-radius: 50%;
+  margin: auto auto 0;
+  width: 42px; height: 42px; border-radius: 50%;
   border: 2px solid var(--acc);
   display: grid; place-items: center;
   color: var(--acc);
+  background: var(--acc-dim);
 }
-.ph-seal svg { width: 22px; height: 22px; stroke-width: 2.4; }
+.ph-seal svg { width: 24px; height: 24px; stroke-width: 2.6; }
 .ph-title {
-  font-family: var(--font-d); font-weight: 800; font-size: 0.72rem;
+  font-family: var(--font-d); font-weight: 800; font-size: 0.76rem;
   color: var(--fg-hi); text-align: center; letter-spacing: -0.01em;
+  line-height: 1.2; margin-top: 10px;
 }
-.ph-id {
-  font-family: var(--font-m); font-size: 0.4rem; line-height: 1.55;
-  color: var(--acc-bright); text-align: center; word-break: break-all;
-  background: var(--acc-dim); border-radius: 6px; padding: 5px 6px;
+.ph-total {
+  font-family: var(--font-d); font-weight: 800; font-size: 0.95rem;
+  color: var(--acc-bright); text-align: center; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; margin-top: 6px;
 }
-.ph-rows { display: grid; gap: 4px; margin-top: 2px; }
-.ph-row {
-  display: flex; justify-content: space-between; gap: 6px;
-  font-family: var(--font-m); font-size: 0.42rem; color: var(--fg-lo);
-  border-bottom: 1px solid var(--line); padding-bottom: 3px;
+.ph-total span { font-family: var(--font-b); font-size: 0.6em; font-weight: 600; color: var(--fg-lo); }
+.ph-ref {
+  font-family: var(--font-m); font-size: 0.54rem; letter-spacing: 0.06em;
+  color: var(--fg-lo); text-align: center; margin: 6px 0 auto;
 }
-.ph-row b { color: var(--fg-hi); font-weight: 600; }
 
 /* ---------- screen frames ---------- */
 .scr {
@@ -230,7 +236,7 @@
 }
 .scr-bar {
   display: flex; align-items: center; gap: 7px;
-  font-size: clamp(0.42rem, 0.72vw, 0.6rem);
+  font-size: clamp(0.47rem, 0.72vw, 0.62rem);
   color: var(--fg-faint); letter-spacing: 0.08em;
   padding-bottom: 7px; border-bottom: 1px solid var(--line);
   flex: none;
@@ -246,7 +252,7 @@
   margin-top: auto; flex: none;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   border-top: 1px solid var(--line); padding-top: 8px;
-  font-size: clamp(0.4rem, 0.72vw, 0.6rem); color: var(--fg-faint); letter-spacing: 0.06em;
+  font-size: clamp(0.47rem, 0.72vw, 0.62rem); color: var(--fg-faint); letter-spacing: 0.06em;
 }
 .scr-foot b { color: var(--acc); font-weight: 600; }
 .sv-row {
@@ -259,7 +265,7 @@
   padding: 0 clamp(4px, 0.7vw, 9px);
   border-radius: 3px;
   background: var(--bg-2);
-  font-size: clamp(0.4rem, 0.75vw, 0.66rem);
+  font-size: clamp(0.47rem, 0.75vw, 0.68rem);
   color: var(--fg-hi);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -288,7 +294,7 @@
 .mapline > span {
   border: 1px solid var(--line-hi); border-radius: 6px;
   padding: clamp(4px, 0.8vw, 9px) clamp(6px, 1vw, 12px);
-  font-size: clamp(0.4rem, 0.75vw, 0.66rem);
+  font-size: clamp(0.47rem, 0.75vw, 0.68rem);
   color: var(--fg-lo);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: color var(--d2) var(--e-out), border-color var(--d2) var(--e-out), background var(--d2) var(--e-out);
@@ -314,7 +320,7 @@
 .docxml {
   background: #050807; border: 1px solid var(--line); border-radius: 7px;
   padding: clamp(7px, 1.1vw, 14px);
-  font-size: clamp(0.36rem, 0.66vw, 0.58rem); line-height: 1.75;
+  font-size: clamp(0.44rem, 0.66vw, 0.6rem); line-height: 1.75;
   color: var(--fg-lo); white-space: pre; overflow: hidden;
 }
 .docxml .x-tag { color: var(--acc); }
@@ -324,7 +330,7 @@
   display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--line); border-radius: 6px;
   background: var(--bg-2); padding: clamp(5px, 0.9vw, 10px) clamp(7px, 1.1vw, 12px);
-  font-size: clamp(0.4rem, 0.72vw, 0.62rem); color: var(--fg-lo);
+  font-size: clamp(0.47rem, 0.72vw, 0.64rem); color: var(--fg-lo);
   opacity: 0.4;
   transition: opacity var(--d2) var(--e-out), border-color var(--d2) ease, color var(--d2) ease;
 }
@@ -350,19 +356,32 @@
 .rig-sec[data-beat="3"] .scr-3,
 .rig-sec[data-beat="4"] .scr-3 { opacity: 1; }
 
+/* short viewports: the stage clips, so the rig has to shrink with it */
+@media (max-height: 820px) and (min-width: 861px) {
+  .rig-inner { width: min(720px, 100%); }
+  .rig-head { min-height: 118px; }
+}
+@media (max-height: 700px) and (min-width: 861px) {
+  .rig-inner { width: min(600px, 100%); }
+}
+
 /* ---------- responsive ---------- */
+@media (max-height: 820px) and (min-width: 861px) {
+  .sv-row.sv-empty:nth-last-child(-n+4) { display: none; }
+}
 @media (max-width: 860px) {
   .rig-sec { height: 280vh; }
+  .sv-row.sv-empty:nth-last-child(-n+5) { display: none; }
   .rig-stage { padding-top: 76px; }
   .rig-head { min-height: 150px; }
-  .phone { width: 27%; right: -4%; bottom: -16%; }
+  .phone { width: 27%; right: -1%; bottom: -4%; }
   .docview { grid-template-columns: 1fr; }
   .docchecks { display: none; }
 }
 @media (max-width: 560px) {
   .rig-sec { height: 250vh; }
   .mapline { grid-template-columns: 1fr 22px 1fr; gap: 6px; }
-  .mapline > span { font-size: 0.42rem; padding: 4px 5px; }
+  .mapline > span { font-size: 0.47rem; padding: 4px 5px; }
 }
 
 /* ---------- no-JS / reduced motion: show the payoff, no runway ---------- */
