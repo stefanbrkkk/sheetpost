@@ -8,6 +8,6 @@ assets/fonts/*-700-*.woff2
 assets/fonts/*-800-*.woff2
 .DS_Store
 *.zip
-qa/
-og-card.html
-logo-lockup-card.html
+node_modules/
+assets/img/qa-*.png
+tests/artifacts/

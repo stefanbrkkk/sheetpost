@@ -10,6 +10,9 @@
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   font-weight: 600; font-size: var(--fs-small);
+  /* Figtree's space is 0.21em, which at 600 weight and button size closes up
+     hard enough that "Wypróbuj bezpłatnie" reads as one word */
+  word-spacing: 0.09em;
   border-radius: var(--r-in);
   padding: 14px 22px;
   border: 1px solid transparent;
@@ -17,7 +20,16 @@
               background var(--d1) var(--e-out), color var(--d1) var(--e-out);
   white-space: nowrap;
 }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: translateY(1px) scale(0.985); }
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: saturate(0.35);
+  transform: none;
+}
+.btn:disabled:hover, .btn[aria-disabled="true"]:hover { transform: none; border-color: var(--line-hi); }
+.btn-primary:disabled::after { content: none; }
 
 .btn-primary {
   background: var(--acc); color: var(--acc-ink);
@@ -48,16 +60,55 @@
   position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-nav);
   display: flex; align-items: center; gap: 20px;
   padding: 0 clamp(16px, 3vw, 32px);
-  height: 68px;
+  height: var(--nav-h);
   border-bottom: 1px solid transparent;
-  transition: transform var(--d2) var(--e-out), background var(--d2) ease, border-color var(--d2) ease, height var(--d2) ease;
+  /* The background is deliberately NOT transitioned. The paper theme swaps
+     custom properties, which change instantly; animating the background over
+     350ms left paper-coloured text on an ink-coloured bar for a third of a
+     second, at a contrast of 1.2:1. Colour and surface flip together or not
+     at all. */
+  transition: transform var(--d2) var(--e-out), border-color var(--d2) ease, height var(--d2) ease;
 }
 .nav.scrolled {
   background: rgba(8, 11, 9, 0.82);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   backdrop-filter: blur(14px) saturate(1.15);
   border-color: var(--line);
-  height: 60px;
+  height: var(--nav-h-scrolled);
+}
+/* The header rides into the document world.
+   No backdrop-filter here on purpose: the bridge sheet is transformed, which
+   makes it a backdrop root, so a translucent header would sample the dark
+   page canvas behind it and render as a grey band. Solid paper is correct
+   for a document header anyway. */
+.nav--paper.scrolled {
+  background: var(--p-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: rgba(20, 33, 26, 0.14);
+}
+.nav--paper .brand-mark {
+  background:
+    linear-gradient(var(--p-panel), var(--p-panel)) padding-box,
+    linear-gradient(180deg, rgba(20, 33, 26, .34), rgba(20, 33, 26, .1)) border-box;
+}
+.nav--paper .nav-links a:hover { background: rgba(20, 33, 26, .07); }
+.nav--paper .btn-primary { background: var(--p-acc); color: #F2F5EC; }
+.nav--paper .btn-primary::after { content: none; }
+/* Nothing in the header may transition `color`. The palette swaps in one
+   frame when the page crosses into the document world; a lagging text colour
+   leaves the bar illegible for the length of the transition. */
+.nav a, .nav button, .nav .btn {
+  transition-property: background-color, background, border-color, transform, opacity;
+}
+/* The CTA is the one solid surface in the bar that carries its own label, so
+   the bar's rule applies to it too: fill and text flip in the same frame.
+   Transitioning the fill while the colour snapped left the paper world's near
+   white label on the ink world's mint at 1.8:1 for the length of the fade,
+   on every scroll past the guarantee fold. Hover feedback lives on ::after
+   and transform, so nothing is lost by dropping the fill from the list. */
+.nav .btn-primary {
+  transition-property: border-color, transform, opacity;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .nav.scrolled { background: rgba(8, 11, 9, 0.97); }
@@ -90,25 +141,45 @@
 }
 .brand-tld { color: var(--fg-lo); font-weight: 500; }
 
-.nav-links { display: flex; gap: 4px; margin-inline: auto; }
+.nav-links { display: flex; gap: 2px; margin-inline: auto; min-width: 0; }
 .nav-links a {
-  color: var(--fg); font-size: 0.92rem; font-weight: 500;
-  padding: 8px 14px; border-radius: var(--r-pill);
-  transition: color var(--d1) ease, background var(--d1) ease;
+  color: var(--fg); font-size: 0.9rem; font-weight: 500;
+  padding: 8px 12px; border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition: background var(--d1) ease;
 }
 .nav-links a:hover { color: var(--fg-hi); background: rgba(206,244,220,.06); }
 
-.nav-right { display: flex; align-items: center; gap: 10px; }
+/* margin-left:auto keeps the right cluster on the right once .nav-links
+   (and its auto margins) are hidden at the burger breakpoint */
+.nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; flex: none; }
 
 /* language switcher */
 .langs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-pill); }
 .langs button {
-  font-family: var(--font-m); font-size: 0.72rem; font-weight: 600;
+  font-family: var(--font-m); font-size: var(--fs-mini); font-weight: 600;
   color: var(--fg-lo); padding: 4px 8px; border-radius: var(--r-pill);
-  transition: color var(--d1) ease, background var(--d1) ease;
+  /* No `color` here. This shorthand sits later in the file than the header's
+     transition-property rule and at equal specificity, so listing colour
+     would quietly re-enable the very fade that rule exists to prevent. */
+  transition: background var(--d1) ease;
 }
 .langs button:hover { color: var(--fg-hi); }
 .langs button[aria-pressed="true"] { background: var(--acc-dim); color: var(--acc); }
+/* The mint accent carries the ink world, but at 11px mono on its own 12% tint
+   over paper it lands at 3.9:1. The document world gets the deeper ink. */
+.nav--paper .langs button[aria-pressed="true"] { color: var(--acc-bright); }
+
+/* reading progress: a hairline that fills as the document is read */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  z-index: var(--z-progress);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--acc), var(--acc-bright));
+  pointer-events: none;
+}
+html.no-js .scroll-progress { display: none; }
 
 /* burger + mobile menu */
 .burger { display: none; width: 42px; height: 42px; border: 1px solid var(--line-hi); border-radius: var(--r-in); place-items: center; }
@@ -116,12 +187,21 @@
 .menu {
   position: fixed; inset: 0; z-index: var(--z-menu);
   background: rgba(8, 11, 9, 0.98);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   display: none; flex-direction: column; gap: 8px;
-  padding: 96px 24px 32px;
+  padding: calc(var(--nav-h) + 28px) 24px max(32px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .menu.open { display: flex; }
-.menu a {
+/* Direct children only. The CTA in .menu-foot is an <a> too, and this rule
+   outranks .btn-primary, so an unscoped `.menu a` repainted the button's label
+   in the link colour: near white on mint at 1.8:1, at 1.8rem, with a link
+   underline through it. That is the primary CTA on a phone. */
+.menu > a {
   font-family: var(--font-d); font-size: 1.8rem; font-weight: 700;
+  word-spacing: 0.04em;
   color: var(--fg-hi); padding: 10px 0; border-bottom: 1px solid var(--line);
 }
 .menu .menu-foot { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
@@ -178,18 +258,21 @@
 /* ---------- marquee ---------- */
 .marquee-wrap {
   border-block: 1px solid var(--line);
-  padding-block: 18px;
+  padding-block: 26px;
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
-.marquee { display: flex; gap: 44px; width: max-content; will-change: transform; }
+.marquee { display: flex; gap: 18px; width: max-content; will-change: transform; align-items: center; }
 .marquee span {
-  font-family: var(--font-m); font-size: 0.8rem; font-weight: 600;
+  font-family: var(--font-m); font-size: 0.82rem; font-weight: 600;
   color: var(--fg-lo); white-space: nowrap; letter-spacing: 0.04em;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 9px 16px;
+  background: var(--bg-1);
 }
-.marquee span b { color: var(--fg); font-weight: 600; }
-.marquee-wrap:hover .marquee { animation-play-state: paused; }
+.marquee span b { color: var(--fg-hi); font-weight: 700; }
 
 /* ---------- countdown tickers ---------- */
 .tickers { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -200,16 +283,22 @@
   background: var(--bg-1);
   padding: 16px 18px;
 }
-.ticker-label { font-family: var(--font-m); font-size: 0.72rem; color: var(--fg-lo); letter-spacing: 0.02em; }
+.ticker-label { font-family: var(--font-m); font-size: var(--fs-mini); color: var(--fg-lo); letter-spacing: 0.02em; }
 .ticker-clock { font-family: var(--font-m); font-size: clamp(1.1rem, 2vw, 1.5rem); font-weight: 700; color: var(--fg-hi); font-variant-numeric: tabular-nums; }
 .ticker-clock b { color: var(--acc); font-weight: 700; }
+.ticker-clock .tk-u { font-size: 0.62em; color: var(--fg-lo); margin-left: 2px; margin-right: 8px; }
+.ticker-clock.past { color: var(--acc); }
+.ticker {
+  transition: border-color var(--d2) ease, background var(--d2) ease, transform var(--d2) var(--e-out);
+}
+.ticker:hover { border-color: var(--line-hi); transform: translateY(-2px); }
 
 /* ---------- forms ---------- */
 .field { display: flex; flex-direction: column; gap: 7px; }
 .field label { font-size: var(--fs-small); font-weight: 600; color: var(--fg-hi); }
 .input, select.input, textarea.input {
   background: var(--bg-1);
-  border: 1px solid var(--line-hi);
+  border: 1px solid var(--ctl-line);
   border-radius: var(--r-in);
   padding: 12px 14px;
   color: var(--fg-hi);
@@ -217,9 +306,12 @@
   width: 100%;
 }
 .input::placeholder { color: var(--fg-faint); }
-.input:focus { outline: none; border-color: var(--acc); background: var(--bg-2); }
-.input[aria-invalid="true"] { border-color: var(--seal); }
-.hint { font-size: 0.8rem; color: var(--fg-lo); }
+/* keep the global focus ring; only the redundant default outline goes */
+.input:focus { border-color: var(--acc); background: var(--bg-2); }
+.input:focus:not(:focus-visible) { outline: none; }
+.input[aria-invalid="true"] { border-color: var(--seal); background: rgba(200, 69, 47, 0.08); }
+.input:disabled { opacity: 0.5; cursor: not-allowed; }
+.hint { font-size: var(--fs-mini); color: var(--fg-lo); }
 .hint.err { color: var(--seal-bright); }
 
 .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; color: var(--fg-lo); }
@@ -229,6 +321,9 @@
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---------- accordion (details) ---------- */
+/* the answers keep a reading measure but start on the page's rail, so the
+   section does not appear to slide sideways */
+.faq-wrap .sec-head, .faq-wrap .faq-item { max-width: 820px; }
 .faq-item {
   border: 1px solid var(--line); border-radius: var(--r-card);
   background: var(--bg-1);
@@ -250,54 +345,51 @@
 .faq-item .faq-body { padding: 0 22px 22px; color: var(--fg); font-size: 0.95rem; max-width: 68ch; }
 .faq-item .faq-body p + p { margin-top: 10px; }
 
-/* ---------- modal ---------- */
-.modal {
-  position: fixed; inset: 0; z-index: var(--z-modal);
-  display: none; place-items: center;
-  padding: 20px;
-  background: rgba(4, 6, 5, 0.72);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+/* ---------- dialog chrome (used by the demo gate) ---------- */
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border-radius: var(--r-in); color: var(--fg-lo);
+  border: 1px solid transparent;
+  transition: color var(--d1) ease, border-color var(--d1) ease;
 }
-.modal.open { display: grid; }
-.modal-card {
-  width: min(560px, 100%);
-  border-radius: var(--r-panel);
-  padding: 34px;
-  position: relative;
-  animation: modal-in var(--d2) var(--e-out);
-}
-@keyframes modal-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
-.modal-close { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; display: grid; place-items: center; border-radius: var(--r-in); color: var(--fg-lo); border: 1px solid transparent; }
 .modal-close:hover { color: var(--fg-hi); border-color: var(--line-hi); }
 
 /* ---------- footer ---------- */
 .footer { border-top: 1px solid var(--line); background: var(--bg-0); padding: 64px 0 40px; }
 .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; }
-.footer h4 { font-family: var(--font-m); font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.12em; color: var(--fg-faint); margin-bottom: 14px; font-weight: 600; }
-.footer-links { display: flex; flex-direction: column; gap: 9px; }
-.footer-links a { color: var(--fg-lo); font-size: 0.9rem; display: inline-block; padding: 12px 0; }
+.footer .foot-h { font-family: var(--font-m); font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.12em; color: var(--fg-lo); margin-bottom: 14px; font-weight: 600; }
+.footer-mail { display: inline-flex; align-items: center; min-height: 26px; padding: 5px 0; }
+.footer-links { display: flex; flex-direction: column; gap: 2px; }
+.footer-links a {
+  color: var(--fg-lo); font-size: 0.9rem;
+  display: inline-flex; align-items: center;
+  min-height: 40px; padding: 4px 0;
+  width: fit-content;
+}
 .footer-links a:hover { color: var(--fg-hi); }
 .footer-tag { font-family: var(--font-m); color: var(--fg-lo); font-size: 0.85rem; margin-top: 12px; }
-.footer-fine { color: var(--fg-faint); font-size: 0.78rem; line-height: 1.7; }
+.footer-fine { color: var(--fg-faint); font-size: var(--fs-mini); line-height: 1.7; }
 .footer-bottom { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
 
-/* responsive components */
-@media (max-width: 960px) {
+/* responsive components (ordered widest -> narrowest so the last match wins) */
+/* the burger arrives while the links still fit: German is the long case */
+@media (max-width: 1080px) {
   .nav-links { display: none; }
   .burger { display: grid; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 480px) {
-  .nav-right > .btn { display: none; } /* CTA lives in the menu + hero on small phones */
-  .nav { gap: 10px; }
+@media (max-width: 960px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 640px) {
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
-  .langs { display: none; }       /* langs live inside mobile menu instead */
+  .langs { display: none; }       /* langs live inside the mobile menu instead */
   .menu .langs { display: flex; }
-  .menu .langs button { padding: 11px 16px; font-size: 0.8rem; }
+  .menu .langs button { padding: 11px 16px; font-size: var(--fs-mini); }
+  .menu > a { font-size: 1.5rem; }
+}
+@media (max-width: 480px) {
+  .nav-right > .btn { display: none; } /* CTA lives in the menu + hero on small phones */
+  .nav { gap: 10px; padding-inline: 14px; }
+  .brand { font-size: 1.05rem; }
 }

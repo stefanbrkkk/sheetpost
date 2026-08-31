@@ -29,7 +29,9 @@
   color: var(--p-ink);
   will-change: transform;
   display: grid;
+  align-content: center;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .sheet-edge {
   position: absolute; left: 0; right: 0; top: -10vh; height: 10vh;
@@ -40,17 +42,19 @@
 /* the sheet sits OUTSIDE .paper-world — scope the paper text colors to it */
 .paper-sheet h2, .paper-sheet h3 { color: var(--p-ink); }
 .paper-sheet h2 em { color: var(--p-acc); }
-.paper-sheet .lede { color: var(--p-fg); }
+.paper-sheet .lede { color: var(--p-fg); margin-top: 18px; }
 .paper-sheet .trust-list li { color: var(--p-fg); }
 .paper-sheet .trust-list li b { color: var(--p-ink); }
 .paper-sheet .trust-list .ico { color: var(--p-acc); }
 .fold-content {
   position: relative;
   width: 100%;
+  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  margin-inline: auto;
   display: grid; grid-template-columns: 1.05fr 0.95fr;
   gap: clamp(24px, 4vw, 64px);
   align-items: center;
-  padding: clamp(96px, 13vh, 150px) clamp(24px, 5vw, 64px) clamp(40px, 6vh, 72px);
+  padding: clamp(84px, 11vh, 124px) var(--gutter) clamp(44px, 6vh, 76px);
 }
 @media (max-width: 860px) {
   .paper-bridge { height: 130vh; }
@@ -65,9 +69,28 @@
 }
 .fold-caption {
   position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
-  font-family: var(--font-m); font-size: 0.66rem; letter-spacing: 0.16em;
+  font-family: var(--font-m); font-size: var(--fs-nano); letter-spacing: 0.16em;
   color: var(--p-lo); text-transform: uppercase;
 }
+/* the guarantee is a document, so it carries document furniture */
+.fold-docno {
+  position: absolute; top: 22px; right: clamp(20px, 4vw, 56px);
+  font-size: var(--fs-nano); letter-spacing: 0.14em; color: var(--p-lo);
+}
+.fold-foot {
+  width: 100%;
+  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding: 0 var(--gutter) clamp(28px, 4vh, 44px);
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+  color: var(--p-lo);
+  border-top: 1px solid var(--p-line);
+  margin-top: clamp(16px, 3vh, 32px);
+  padding-top: 16px;
+}
+.fold-foot .mono { font-size: var(--fs-nano); letter-spacing: 0.1em; }
+.fold-scribble { width: 132px; height: 26px; color: var(--p-ink); opacity: 0.55; flex: none; }
+@media (max-width: 560px) { .fold-docno { display: none; } .fold-scribble { width: 96px; } }
 
 /* paper world wrapper for everything after the fold */
 .paper-world {
@@ -75,6 +98,10 @@
   color: var(--p-fg);
   position: relative;
 }
+/* one flat tone makes every surface look the same: separate page, band and
+   card by more than a rounding error */
+.paper-world .plan { box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 10px 24px -20px rgba(20,33,26,.5); }
+.paper-world .faq-item { box-shadow: 0 1px 0 rgba(255,255,255,.6) inset; }
 .paper-world::before {             /* paper texture: faint horizontal ruled lines */
   content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
   background-image: repeating-linear-gradient(180deg, transparent 0 34px, rgba(20,33,26,0.045) 34px 35px);
@@ -105,6 +132,7 @@
   border-radius: 18px;
   position: relative;
   transform-style: preserve-3d;
+  overflow: hidden;
   background:
     linear-gradient(135deg, #F7F8EF 0%, #EDEEE4 38%, #F2F3E9 62%, #E7E9DB 100%);
   border: 1px solid var(--p-line-hi);
@@ -116,30 +144,48 @@
   padding: 26px;
 }
 .lockcard-brand {
-  font-family: var(--font-m); font-size: 0.66rem; font-weight: 700;
+  font-family: var(--font-m); font-size: var(--fs-nano); font-weight: 700;
   letter-spacing: 0.18em; color: var(--p-lo);
+  position: relative; z-index: 1;
 }
+/* banknote guilloche across the card's dead middle */
+.lockcard::before {
+  content: ""; position: absolute; inset: 0; opacity: 0.55; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='44' viewBox='0 0 300 44'%3E%3Cg fill='none' stroke='%2314211A' stroke-opacity='0.12'%3E%3Cpath d='M0 22 Q 19 3 38 22 T 76 22 T 114 22 T 152 22 T 190 22 T 228 22 T 266 22 T 304 22'/%3E%3Cpath d='M0 22 Q 19 41 38 22 T 76 22 T 114 22 T 152 22 T 190 22 T 228 22 T 266 22 T 304 22'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 300px 44px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 18%, #000 34%, #000 62%, transparent 82%);
+  mask-image: linear-gradient(180deg, transparent 18%, #000 34%, #000 62%, transparent 82%);
+}
+.lockcard-price, .lockcard-lock, .lockcard-seal { position: relative; z-index: 1; }
 .lockcard-price {
   align-self: end;
   font-family: var(--font-d); font-weight: 800; letter-spacing: -0.03em;
   font-size: clamp(2.6rem, 5vw, 3.6rem); color: var(--p-ink); line-height: 1;
+  display: flex; align-items: baseline; gap: 3px;
+  font-variant-numeric: tabular-nums;
 }
-.lockcard-price span { font-size: 0.4em; font-weight: 600; color: var(--p-lo); letter-spacing: 0; }
+.lockcard-price .pu {
+  font-size: 0.34em; font-weight: 600; color: var(--p-lo);
+  letter-spacing: 0; font-family: var(--font-b);
+}
 .lockcard-lock {
-  position: absolute; top: 46%; right: 26px;
-  font-family: var(--font-m); font-size: 0.6rem; font-weight: 700;
-  letter-spacing: 0.14em; color: var(--p-acc);
+  position: absolute; right: 26px; bottom: 26px; top: 86px;
+  display: flex; align-items: flex-end;
+  font-family: var(--font-m); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.09em; color: var(--p-seal-deep);
   writing-mode: vertical-rl;
-  border-left: 1px solid var(--p-line); padding-left: 8px;
+  border-left: 1px solid var(--p-line); padding-left: 9px;
+  white-space: nowrap; overflow: hidden;
 }
 .lockcard-seal {
   position: absolute; top: 20px; right: 20px;
-  width: 54px; height: 54px; border-radius: 50%;
+  width: 62px; height: 62px; border-radius: 50%;
   border: 2px solid var(--p-acc);
+  background: rgba(255, 255, 255, 0.5);
   display: grid; place-items: center;
   color: var(--p-acc);
   transform: rotate(8deg);
-  font-family: var(--font-m); font-size: 0.5rem; font-weight: 700; letter-spacing: 0.08em;
+  font-family: var(--font-m); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.05em;
   text-align: center; line-height: 1.2;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.85' intercept='0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23r)'/%3E%3C/svg%3E");
   -webkit-mask-size: 120px;
@@ -154,23 +200,35 @@
 .locknote { font-family: var(--font-m); font-size: 0.75rem; color: var(--p-lo); }
 
 /* ================= PRICING ================= */
-.plans { display: grid; grid-template-columns: 0.9fr 1.05fr 1.05fr 1fr; gap: 14px; align-items: stretch; }
+.plans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
 .plan {
   border: 1px solid var(--p-line);
   border-radius: var(--r-card);
   background: var(--p-panel);
-  padding: 22px;
+  padding: 24px 22px;
   display: flex; flex-direction: column; gap: 14px;
   position: relative;
+  transition: border-color var(--d2) ease, box-shadow var(--d2) var(--e-out), transform var(--d2) var(--e-out);
 }
+.plan:hover { border-color: var(--p-line-hi); box-shadow: 0 18px 36px -24px rgba(20, 33, 26, 0.45); transform: translateY(-3px); }
+.plan .btn { margin-top: auto; }
 .plan-col {
-  font-family: var(--font-m); font-size: 0.62rem; font-weight: 700;
+  font-family: var(--font-m); font-size: var(--fs-nano); font-weight: 700;
   color: var(--p-lo); letter-spacing: 0.14em;
   display: flex; justify-content: space-between;
 }
 .plan-name { font-family: var(--font-d); font-weight: 800; font-size: 1.05rem; color: var(--p-ink); letter-spacing: -0.01em; }
-.plan-price { font-family: var(--font-d); font-weight: 800; font-size: 2rem; color: var(--p-ink); letter-spacing: -0.03em; }
-.plan-price span { font-size: 0.45em; font-weight: 600; color: var(--p-lo); }
+.plan-price {
+  font-family: var(--font-d); font-weight: 800;
+  font-size: clamp(2rem, 2.6vw, 2.4rem);
+  color: var(--p-ink); letter-spacing: -0.03em;
+  display: flex; align-items: baseline; gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.plan-price .pu {
+  font-size: 0.42em; font-weight: 600; color: var(--p-lo);
+  letter-spacing: 0; font-family: var(--font-b);
+}
 .plan-desc { font-size: 0.86rem; color: var(--p-fg); min-height: 3.2em; }
 .plan-feats { list-style: none; padding: 0; margin: 2px 0 6px; display: grid; gap: 8px; }
 .plan-feats li { display: flex; gap: 9px; font-size: 0.85rem; color: var(--p-fg); align-items: flex-start; }
@@ -182,14 +240,19 @@
   background: var(--p-ink);
   border-color: var(--p-ink);
   transform: translateY(-14px);
+  box-shadow: 0 26px 54px -30px rgba(20, 33, 26, 0.6);
 }
+.plan-hot:hover { transform: translateY(-18px); box-shadow: 0 32px 64px -30px rgba(20, 33, 26, 0.7); }
 .plan-hot .plan-name, .plan-hot .plan-price { color: var(--p-bg); }
+/* the unit sits on the dark card too: --p-lo is unreadable there */
+.plan-hot .plan-price .pu { color: rgba(237, 238, 228, .78); }
 .plan-hot .plan-col { color: rgba(237,238,228,.6); }
 .plan-hot .plan-desc { color: rgba(237,238,228,.75); }
 .plan-hot .plan-feats li { color: rgba(237,238,228,.82); }
 .plan-hot .plan-feats .ico { color: var(--acc); }
+.plan-hot { margin-top: 12px; }
 .plan-hot .stamp {
-  position: absolute; top: -14px; right: 16px; font-size: 0.72rem; padding: 5px 12px; border-width: 0;
+  position: absolute; top: -13px; right: 16px; font-size: var(--fs-mini); padding: 5px 12px; border-width: 0;
   opacity: 1; transform: rotate(-6deg); animation: none;
   background: var(--p-seal); color: #F2F5EC;
   mask-image: none; -webkit-mask-image: none;
@@ -197,13 +260,22 @@
 .plan-hot .btn-ghost { border-color: rgba(237,238,228,.35); color: var(--p-bg); }
 .plan-hot .btn-ghost:hover { border-color: var(--p-bg); }
 .plans-toggle {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-family: var(--font-m); font-size: 0.78rem; color: var(--p-lo);
-  margin-bottom: 26px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-m); font-size: var(--fs-mini); color: var(--p-lo);
+  border: 1px solid var(--p-line); border-radius: var(--r-pill);
+  padding: 4px;
+  margin-top: 24px;
 }
-.plans-toggle button { color: var(--p-lo); padding: 10px 16px; border-radius: var(--r-pill); border: 1px solid transparent; font-family: var(--font-m); font-size: 0.78rem; transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
-.plans-toggle button[aria-pressed="true"] { color: var(--p-ink); border-color: var(--p-line-hi); background: var(--p-panel); }
-.pricing-note { margin-top: 22px; font-family: var(--font-m); font-size: 0.78rem; color: var(--p-lo); }
+.pricing-head {
+  max-width: none;                /* .sec-head caps at 760px; the control belongs at the table's right edge */
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+.pricing-head h2 { max-width: 18ch; }
+@media (max-width: 700px) { .pricing-head { align-items: flex-start; } }
+.plans-toggle button { color: var(--p-lo); padding: 10px 16px; border-radius: var(--r-pill); border: 1px solid transparent; font-family: var(--font-m); font-size: var(--fs-mini); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
+.plans-toggle button[aria-pressed="true"] { color: var(--p-bg); border-color: transparent; background: var(--p-ink); }
+.pricing-note { margin-top: 20px; font-family: var(--font-m); font-size: var(--fs-mini); color: var(--p-lo); max-width: 76ch; }
+.pricing-note + .pricing-note { margin-top: 8px; }
 @media (max-width: 1020px) {
   .plans { grid-template-columns: 1fr 1fr; }
   .plan-hot { transform: none; }
@@ -214,7 +286,9 @@
 
 /* ================= PARTNER BAND ================= */
 .partner {
-  margin-top: 6px;
+  /* the pricing section's own bottom padding IS the gap: a margin here
+     stacked on top of it and produced a 240px hole */
+  margin-top: 0;
   border-block: 1px solid var(--p-line);
   background: var(--p-bg-2);
 }
@@ -228,14 +302,18 @@
 .partner-points { display: grid; gap: 10px; list-style: none; padding: 0; }
 .partner-points li { display: flex; gap: 10px; align-items: flex-start; color: var(--p-fg); font-size: 0.94rem; }
 .partner-points .ico { color: var(--p-acc); margin-top: 3px; }
+.partner-cta { margin-top: 22px; }
 @media (max-width: 860px) { .partner-grid { grid-template-columns: 1fr; } }
 
 /* paper-world form + faq overrides */
-.paper-world .input { background: #FFFFFF; border-color: var(--p-line-hi); color: var(--p-ink); }
-.paper-world .input::placeholder { color: #97A090; }
+.paper-world .input { background: #FFFFFF; border-color: var(--p-ctl-line); color: var(--p-ink); }
+/* the placeholder is a hint, never the label: both are visible now */
+.paper-world .input::placeholder { color: #6B7566; }
 .paper-world .input:focus { border-color: var(--p-acc); background: #FFFFFF; }
 .paper-world .field label { color: var(--p-ink); }
 .paper-world .checkline { color: var(--p-lo); }
+.paper-world .checkline input { accent-color: var(--p-acc); }
+.paper-world .plans-toggle button:hover { color: var(--p-ink); }
 .paper-world .faq-item { background: var(--p-panel); border-color: var(--p-line); }
 .paper-world .faq-item summary { color: var(--p-ink); }
 .paper-world .faq-item summary:hover { background: var(--p-bg-2); }
@@ -247,16 +325,23 @@
 .paper-world .btn-ghost:hover { border-color: var(--p-ink); transform: translateY(-1px); }
 
 /* ================= CTA ================= */
+.paper-world > .section:first-child { padding-top: clamp(56px, 7vw, 96px); }
+.cta { border-top: 1px solid var(--p-line); }
 .cta .wrap-narrow { text-align: center; }
 .cta h2 { max-width: 16ch; margin-inline: auto; }
 .cta .lede { margin: 18px auto 0; }
 .waitlist {
   margin: 34px auto 0;
-  display: grid; grid-template-columns: 1.3fr 1fr auto;
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
   gap: 10px;
   max-width: 720px;
   text-align: left;
 }
+.waitlist > * { min-width: 0; }
+.waitlist .field { justify-content: flex-end; }
+.waitlist select.input { height: 100%; min-height: 48px; }
+.waitlist .btn { align-self: end; min-height: 48px; }
+.waitlist .btn { white-space: normal; }
 .waitlist-consent { max-width: 720px; margin: 12px auto 0; justify-content: center; }
 .wait-ok {
   margin-top: 22px;
@@ -265,21 +350,16 @@
   opacity: 0; transform: translateY(6px);
   transition: opacity var(--d2) var(--e-out), transform var(--d2) var(--e-out);
 }
+/* hidden until it is true, so assistive tech cannot announce it early */
+.wait-ok[hidden] { display: none; }
 .wait-ok.show { opacity: 1; transform: none; }
-.fineprint { margin-top: 18px; font-family: var(--font-m); font-size: 0.72rem; color: var(--p-lo); }
+.fineprint { margin-top: 18px; font-family: var(--font-m); font-size: var(--fs-mini); color: var(--p-lo); }
 @media (max-width: 720px) {
   .waitlist { grid-template-columns: 1fr; }
 }
 
-/* modal card on dark backdrop, paper body (it belongs to the document world) */
-.modal-card {
-  background: var(--p-bg);
-  color: var(--p-fg);
-  border: 1px solid var(--p-line-hi);
-}
-.modal-card h3 { color: var(--p-ink); margin-bottom: 10px; font-size: 1.4rem; }
-.modal-card p { font-size: 0.94rem; }
-.modal-close { color: var(--p-lo); border-color: transparent; }
-.modal-close:hover { color: var(--p-ink); border-color: var(--p-line-hi); }
-.modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-.modal-note { margin-top: 18px; font-family: var(--font-m); font-size: 0.7rem; color: var(--p-lo); }
+/* the gate card borrows the document world's palette */
+.gate-card h3 { color: var(--fg-hi); }
+.modal-note { margin-top: 18px; font-family: var(--font-m); font-size: var(--fs-mini); color: var(--fg-lo); }
+.modal-close { color: var(--fg-lo); border-color: transparent; }
+.modal-close:hover { color: var(--fg-hi); border-color: var(--line-hi); }

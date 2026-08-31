@@ -19,13 +19,30 @@
 | Netlify | Drag-and-drop the site folder at app.netlify.com/drop | Fastest manual option; rename `_headers`/`_redirects` config as needed (Netlify uses the same filenames) |
 | GitHub Pages | Only if the repo becomes public (or GitHub Pro) → Settings → Pages → deploy from `main` | The repo is currently private; strict CSP `_headers` does NOT apply on GitHub Pages (fine — headers are a hardening bonus, the site works without them) |
 
-## Before you publish publicly — 5-minute checklist
-1. Fill the launch-blocker placeholders (search the repo for `[___]` and `[pełna`):
-   - `index.html` footer imprint: your full name, APR number, PIB, address
-   - `privacy.html`: controller name + APR + address (same data)
-2. Set `FORM_ENDPOINT` in `assets/js/app.js` to a real form endpoint (Formspree free tier) so waitlist emails actually reach you.
-3. Buy the domain and attach it (Vercel/Cloudflare instructions above).
-4. Optional analytics: Cloudflare Web Analytics (cookie-free — keeps the no-cookies promise in the privacy policy).
+## Before you publish publicly
+
+Everything you must fill in now lives in one file: **`assets/js/config.js`**.
+
+1. Legal identity (`legalName`, `registryNo`, `taxId`, `address`). Until these
+   are set, the footer imprint and the controller sentence in the privacy
+   policy are omitted rather than shown with placeholders.
+2. `formEndpoint` — a real form endpoint (Formspree's free tier works) so
+   waitlist signups reach you. **Then add its host to `connect-src` in
+   `_headers`**, or the strict CSP will block the request.
+3. Verify with `npm run test:launch`. It fails while step 1 is outstanding.
+4. Buy the domain and attach it (instructions above). If the domain is not
+   `sheetpost.app`, grep for it: canonical URLs, hreflang, `sitemap.xml`,
+   `og:*` and `llms.txt` all name it.
+5. Optional analytics: Cloudflare Web Analytics (cookie-free, which keeps the
+   no-cookies promise in the privacy policy true). Anything else needs a
+   consent banner and a privacy-policy update.
+
+## A note on the Content-Security-Policy
+
+`_headers` ships `default-src 'self'` with **no** `unsafe-inline`. That is not
+decorative: the site has zero inline styles and zero inline scripts, and
+`npm run check` fails if anyone adds one. Hosts that ignore `_headers`
+(GitHub Pages) still serve a working site; they just lose the hardening.
 
 ## AI API key — not needed
 The site requires **no AI API key**. The demo's "AI column mapping" runs as deterministic client-side heuristics (column-type detection + median-magnitude classification) — it makes zero network calls, which is also why the GDPR posture is so clean. If you later want AI-assisted mapping in the actual app, free tiers exist (Google AI Studio / Gemini free tier, Groq free tier, Mistral free tier) — configure that in the app, never in this marketing site.

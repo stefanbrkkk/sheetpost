@@ -5,20 +5,26 @@
 
 .legal { padding: 140px 0 90px; }
 .legal h1 { margin-bottom: 8px; }
-.legal .up { font-family: var(--font-m); font-size: .78rem; color: var(--fg-lo); margin-bottom: 40px; display: inline-block; }
+.legal .up { font-family: var(--font-m); font-size: var(--fs-mini); color: var(--fg-lo); margin-bottom: 40px; }
+.legal a.up { display: inline-block; }
 .legal h2 { font-size: 1.3rem; margin: 34px 0 10px; }
 .legal p, .legal li { color: var(--fg); font-size: .96rem; max-width: 70ch; }
+/* the global reset zeroes every margin, so the legal prose needs its own */
+.legal p + p, .legal p + ul, .legal ul + p, .legal table + p { margin-top: 14px; }
+.legal li + li { margin-top: 6px; }
 .legal ul { padding-left: 20px; margin: 10px 0; }
 .legal .mono { font-size: .85rem; color: var(--acc); }
 .legal table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .88rem; }
 .legal td, .legal th { text-align: left; padding: 9px 12px; border: 1px solid var(--line); color: var(--fg); }
-.legal th { font-family: var(--font-m); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-lo); }
+.legal th { font-family: var(--font-m); font-size: var(--fs-nano); text-transform: uppercase; letter-spacing: .1em; color: var(--fg-lo); }
 
 /* document language toggle (PL/EN) */
 .doc-langs { display: flex; gap: 8px; margin-bottom: 30px; }
-.doc-langs button { font-family: var(--font-m); font-size: .75rem; padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
+.doc-langs button { font-family: var(--font-m); font-size: var(--fs-micro); padding: 8px 14px; border: 1px solid var(--line-hi); border-radius: 99px; color: var(--fg-lo); transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease; }
 .doc-langs button[aria-pressed="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
 
+/* Nothing else in this file sets `display` on a .up element, so these two
+   rules are the only things deciding which language is on screen. */
 .en-txt { display: none; }
 html[data-doclang="en"] .pl-txt { display: none; }
 html[data-doclang="en"] .en-txt { display: block; }

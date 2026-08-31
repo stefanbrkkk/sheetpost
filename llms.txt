@@ -7,9 +7,10 @@ Sheetpost is a web tool by an independent vendor. Users keep their Excel or Goog
 ## Key facts
 - Launch market: Poland (KSeF 2.0, FA(3)); live for most businesses since Apr 1 2026; penalties from Jan 1 2027; micro-firms (≤10k PLN monthly sales) join 2027
 - Roadmap: Croatia + Romania → Germany (XRechnung/ZUGFeRD, issue 2027/28) → Peppol countries → France
-- Pricing (price-locked founder plan): Free 0 (3 invoices/mo) · Solo 39 PLN/€9 per month · Business 79 PLN/€19 · Accountant 199 PLN/€49 (25 clients, 20-30% rev-share)
+- Pricing (price-locked founder plan): Free 0 (3 invoices/mo) · Solo 39 PLN / 9 EUR / 45 RON per month · Business 79 PLN / 19 EUR / 95 RON · Accountant 199 PLN / 49 EUR / 249 RON (25 clients, 20-30% rev-share)
 - Trust package: price locked in writing, one-click cancel, full data export in open formats, perpetual fallback
-- On-page demo: real FA(3) validation engine in the browser (paste rows or upload .xlsx), one free run, then email-gated
+- On-page demo: real FA(3) validation engine in the browser (paste rows or upload .xlsx); it maps columns from their headers, checks both NIP checksums, the PL VAT rate catalogue, per-line arithmetic and the invoice currency, then renders the invoice and its FA(3) XML side by side. One free run, then an email unlock grants three more
+- Site languages: Polish (default), English, German, Croatian, Romanian
 - Independent vendor tool; not affiliated with the Polish Ministry of Finance or Peppol
 
 ## Pages
