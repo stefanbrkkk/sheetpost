@@ -384,7 +384,7 @@
     state.rows = rows;
     var sNip = ($('#s-nip') || {}).value || '';
     var bNip = ($('#b-nip') || {}).value || '';
-    var badVat = null, badMath = null, badReq = null, badFmt = null;
+    var badVat = null, badReq = null, badFmt = null;
 
     rows.forEach(function (r, i) {
       var n = i + 1;
@@ -405,7 +405,7 @@
         failD: badVat === null ? '' : t('d_chkv_bad', { n: badVat }) + '. ' + t('d_chkv_bad_d')
       },
       {
-        key: 'm', pass: badFmt === null && badMath === null, title: t('d_chkm'), d: t('d_chkm_d'),
+        key: 'm', pass: badFmt === null, title: t('d_chkm'), d: t('d_chkm_d'),
         failD: badFmt === null ? t('d_chkm_bad_d') : t('d_chkc_bad', { n: badFmt }) + '. ' + t('d_chkc_bad_d')
       },
       {
@@ -658,9 +658,8 @@
     var ksefNo = genKsefNo();
     $('#upo-id').textContent = ksefNo;
     upoBox.classList.add('show');
-    /* count the run */
-    if (runs() < 0) store.set('sp_runs', String(runs() + 1));
-    else store.set('sp_runs', String(runs() + 1));
+    /* count the run (negative = bonus runs remaining) */
+    store.set('sp_runs', String(runs() + 1));
     runsLabel();
     sending = false;
   }
