@@ -396,12 +396,19 @@
   .phone { opacity: 1 !important; transform: none !important; }
   .scr-3 { opacity: 1 !important; }
   .doc-stamp { opacity: 1 !important; transform: rotate(-8deg) scale(1) !important; }
+  .lap-spill { opacity: 1; }
   .docchk { opacity: 1; }
 }
 html.no-js .rig-sec { height: auto; }
 html.no-js .rig-stage { position: static; height: auto; overflow: visible; padding-block: var(--sec-pad) 0; }
 html.no-js .rig-beat:not(.rig-beat-last) { display: none; }
-html.no-js .rig-beat-last { opacity: 1; transform: none; }
+/* visibility too. `.rig-beat` is visibility:hidden so the four captions are
+   not all readable at once, and only `.rig-beat.on` restores it, which is a
+   class only JavaScript ever adds. Setting opacity and transform alone left
+   this section wordless with scripting disabled: the devices rendered and
+   nothing explained them. */
+html.no-js .rig-beat-last { opacity: 1; transform: none; visibility: visible; }
+html.no-js .lap-spill { opacity: 1; }
 html.no-js .scr-3 { opacity: 1; }
 html.no-js .phone { opacity: 1; }
 html.no-js .doc-stamp { opacity: 1; transform: rotate(-8deg) scale(1); }

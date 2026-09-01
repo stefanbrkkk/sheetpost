@@ -1395,6 +1395,32 @@ try {
     check('and the choreography still reaches its payoff after the round trip',
       rebuilt.seal === 1 && rebuilt.card === 1, JSON.stringify(rebuilt));
 
+    /* The guarantee section is a document laid over the page, but it is still
+       part of the same page, and its column has to line up with every other
+       one. It did not: adding the gutters back into its max-width made its
+       content column 96px wider than .wrap's, so the headline and the card
+       sat outside the grid the rest of the site is aligned to. */
+    const columns = await page.evaluate(() => {
+      const inner = (sel) => {
+        const e = document.querySelector(sel);
+        if (!e) return null;
+        const cs = getComputedStyle(e);
+        return Math.round(e.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      };
+      return {
+        page: inner('#pricing .wrap'),
+        content: inner('#fold .fold-content'),
+        head: inner('#fold .fold-head'),
+        foot: inner('#fold .fold-foot'),
+      };
+    });
+    check('the fold shares the page content column',
+      columns.page > 0 &&
+      Math.abs(columns.content - columns.page) <= 1 &&
+      Math.abs(columns.head - columns.page) <= 1 &&
+      Math.abs(columns.foot - columns.page) <= 1,
+      JSON.stringify(columns));
+
     /* the document furniture used to be pinned to top:22px of the sheet, which
        put it behind the fixed header where no reader ever saw it */
     await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.end);
@@ -1879,6 +1905,47 @@ try {
     check('without GSAP the demo still works', !(await page.isDisabled('#btn-to-map')));
     const realErrors = gsapNoise.filter((n) => !/vendor\/(gsap|ScrollTrigger)\.min\.js|Failed to load resource/.test(n));
     check('without GSAP nothing throws', realErrors.length === 0, realErrors.join('\n'));
+    await ctx.close();
+  }
+  {
+    /* JavaScript genuinely off. The whole html.no-js CSS branch exists for
+       this and nothing was testing it: the rig's four captions are
+       visibility:hidden so they are not all readable at once, only
+       `.rig-beat.on` restores that, and `.on` is a class only JavaScript ever
+       adds. The no-JS override set opacity and transform and not visibility,
+       so with scripting disabled that whole section rendered its devices and
+       not one word explaining them. */
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto(BASE, { waitUntil: 'load' });
+    await page.waitForTimeout(900);
+    const nojs = await page.evaluate(() => {
+      const readable = (e) => {
+        const cs = getComputedStyle(e);
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.5 &&
+          e.getBoundingClientRect().height > 0;
+      };
+      const some = (sel) => [...document.querySelectorAll(sel)].some(readable);
+      const one = (sel) => { const e = document.querySelector(sel); return !!e && readable(e); };
+      return {
+        heroH1: one('#hero-h1'),
+        heroSub: one('.hero-sub'),
+        rigCaption: some('.rig-beat'),
+        rigDevice: one('.laptop'),
+        foldHeadline: one('#fold h2'),
+        foldCard: one('#lockcard'),
+        guarantees: [...document.querySelectorAll('#fold .trust-list li')].filter(readable).length,
+        pricing: [...document.querySelectorAll('.plan')].filter(readable).length,
+        faq: [...document.querySelectorAll('.faq-item')].filter(readable).length,
+      };
+    });
+    check('with JavaScript off the hero still states the offer', nojs.heroH1 && nojs.heroSub, JSON.stringify(nojs));
+    check('with JavaScript off the rig explains itself in words',
+      nojs.rigCaption && nojs.rigDevice, JSON.stringify(nojs));
+    check('with JavaScript off the guarantee section is complete',
+      nojs.foldHeadline && nojs.foldCard && nojs.guarantees === 4, JSON.stringify(nojs));
+    check('with JavaScript off pricing and the FAQ are readable',
+      nojs.pricing === 4 && nojs.faq >= 8, JSON.stringify(nojs));
     await ctx.close();
   }
   {

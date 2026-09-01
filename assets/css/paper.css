@@ -82,7 +82,7 @@
 .fold-content {
   position: relative;
   width: 100%;
-  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  max-width: var(--wrap);
   margin-inline: auto;
   display: grid; grid-template-columns: 1.05fr 0.95fr;
   gap: clamp(24px, 4vw, 64px);
@@ -117,7 +117,15 @@
    and a file number, on a ruled header band clear of the fixed nav */
 .fold-head {
   width: 100%;
-  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  /* var(--wrap), not var(--wrap) + 2 * var(--gutter).
+
+     `.wrap` is max-width var(--wrap) with padding-inline var(--gutter) and
+     border-box sizing, so every other section on the page has an inner
+     content column of var(--wrap) minus two gutters. Adding the gutters back
+     into the max-width here made the guarantee section's column 96px wider
+     than every other one, so the headline, the guarantees and the card sat
+     outside the grid the rest of the page is aligned to. */
+  max-width: var(--wrap);
   margin-inline: auto;
   padding: calc(var(--nav-h) + 18px) var(--gutter) 14px;
   display: flex; align-items: baseline; justify-content: space-between; gap: 20px;
@@ -133,7 +141,7 @@
 }
 .fold-foot {
   width: 100%;
-  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  max-width: var(--wrap);
   margin-inline: auto;
   padding: 14px var(--gutter) clamp(22px, 3.5vh, 38px);
   display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
@@ -394,6 +402,10 @@
 .paper-world .faq-body { color: var(--p-fg); }
 .paper-world .btn-primary { background: var(--p-acc); color: #F2F5EC; }
 .paper-world .btn-primary::after { content: none; }
+.paper-world .btn-primary:disabled,
+.paper-world .btn-primary[aria-disabled="true"] {
+  background: var(--p-bg-2); color: var(--p-fg); border-color: var(--p-line-hi);
+}
 .paper-world .btn-ghost { border-color: var(--p-line-hi); color: var(--p-ink); }
 .paper-world .btn-ghost:hover { border-color: var(--p-ink); transform: translateY(-1px); }
 
