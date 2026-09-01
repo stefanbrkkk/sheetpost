@@ -748,14 +748,23 @@
     return String(Math.round(n * 1e6) / 1e6);
   }
   function compute() {
+    /* Round each line once, here, and let every consumer read the same
+       numbers. The per-rate summary used to accumulate unrounded line nets
+       and round the bucket at output, while each FaWiersz rounded its own
+       net, so the sum of the lines and the bucket that is supposed to cover
+       them could differ by a cent. FA(3) expects them to agree, and a
+       document whose parts do not add up is exactly what gets rejected. */
     var rows = state.rows.map(function (r) {
-      var net = (r.qty || 0) * (r.unit || 0);
+      var net = round((r.qty || 0) * (r.unit || 0), 2);
       var rate = typeof r.vat === 'number' ? r.vat : 0;
-      var vat = net * rate / 100;
-      return { name: r.name, qty: r.qty, unit: r.unit, rate: r.vat, net: net, vat: vat, gross: net + vat };
+      var vat = round(net * rate / 100, 2);
+      return { name: r.name, qty: r.qty, unit: r.unit, rate: r.vat, net: net, vat: vat, gross: round(net + vat, 2) };
     });
     var totals = rows.reduce(function (a, r) {
-      a.net += r.net; a.vat += r.vat; a.gross += r.gross; return a;
+      a.net = round(a.net + r.net, 2);
+      a.vat = round(a.vat + r.vat, 2);
+      a.gross = round(a.gross + r.gross, 2);
+      return a;
     }, { net: 0, vat: 0, gross: 0 });
     return { rows: rows, totals: totals };
   }
@@ -768,6 +777,16 @@
      --------------------------------------------------------------- */
   /* FA(3) allows up to 6 decimals on a quantity; carry only what is needed
      and never fewer than two, so 1 -> 1.00 and 0.5 -> 0.50 */
+  /* the readable twin of qtyStr: same value, localised separator, trailing
+     zeros trimmed because a quantity of 3 should read "3", not "3.00" */
+  function fmtQty(q) {
+    if (typeof q !== 'number' || !isFinite(q)) return '0';
+    var dec = 0;
+    var trimmed = q.toFixed(6).replace(/0+$/, '');
+    if (trimmed.indexOf('.') >= 0) dec = Math.min(6, trimmed.split('.')[1].length);
+    var loc = window.SPLocale ? window.SPLocale() : 'pl-PL';
+    return q.toLocaleString(loc, { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  }
   function qtyStr(q) {
     if (typeof q !== 'number' || !isFinite(q)) return '0.00';
     var out = q.toFixed(6).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -799,8 +818,10 @@
     data.rows.forEach(function (r) {
       var keys = vatBucketKeys(r.rate);
       if (!keys[0]) return;
-      buckets[keys[0]] = (buckets[keys[0]] || 0) + r.net;
-      if (keys[1]) buckets[keys[1]] = (buckets[keys[1]] || 0) + r.vat;
+      /* r.net and r.vat are already rounded to the cent, so the bucket is
+         exactly the sum of the lines the file carries */
+      buckets[keys[0]] = round((buckets[keys[0]] || 0) + r.net, 2);
+      if (keys[1]) buckets[keys[1]] = round((buckets[keys[1]] || 0) + r.vat, 2);
     });
     var ORDER = ['P_13_1', 'P_14_1', 'P_13_2', 'P_14_2', 'P_13_3', 'P_14_3', 'P_13_6_1', 'P_13_7', 'P_13_8', 'P_13_9'];
 
@@ -882,7 +903,10 @@
       var div = document.createElement('div');
       div.className = 'inv-row';
       var s1 = document.createElement('span');
-      s1.textContent = r.name + (r.qty !== 1 ? ' × ' + fmt(r.qty, 0) : '');
+      /* not fmt(qty, 0): that rendered 1.5 as "2" and 0.25 as "0" while the
+         file carried 1.50 and 0.25. A quantity keeps the precision it was
+         given, up to the six decimals FA(3) allows. */
+      s1.textContent = r.name + (r.qty !== 1 ? ' × ' + fmtQty(r.qty) : '');
       var b = document.createElement('b');
       b.className = 'mono';
       b.textContent = fmt(r.net) + ' ' + cur;

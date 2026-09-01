@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.SP_PORT || 8199);
-const BASE = `http://127.0.0.1:${PORT}`;
+let BASE = `http://127.0.0.1:${PORT}`;
 const LANGS = ['pl', 'en', 'de', 'hr', 'ro'];
 
 /* The contrast maths has to run inside the page, and every group builds its own
@@ -129,8 +129,23 @@ function startServer() {
         out.end(body);
       } catch (e) { out.writeHead(500); out.end(String(e)); }
     });
-    srv.on('error', rej);
-    srv.listen(PORT, '127.0.0.1', () => res(srv));
+    /* Take the next free port rather than failing. A developer with anything
+       already on 8199, or a previous run whose server outlived it, could not
+       run this suite at all: it died on EADDRINUSE before the first check. */
+    let port = PORT;
+    srv.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE' && port < PORT + 40) {
+        port += 1;
+        srv.listen(port, '127.0.0.1');
+        return;
+      }
+      rej(err);
+    });
+    srv.listen(port, '127.0.0.1', () => {
+      if (port !== PORT) console.log(`  (port ${PORT} was busy, serving on ${port})`);
+      BASE = `http://127.0.0.1:${port}`;
+      res(srv);
+    });
   });
 }
 
@@ -723,6 +738,56 @@ try {
     check('every line total on screen appears in the file with the same rounding',
       strayed.length === 0,
       `shown ${JSON.stringify(agree.shown)}\nfiled ${JSON.stringify(agree.filed)}`);
+
+    /* The document has to add up on its own terms. The per-rate summary used
+       to accumulate unrounded line nets and round only at output, while each
+       line rounded itself, so P_13_1 could miss the sum of the lines it
+       covers by a cent. That is the arithmetic KSeF checks. */
+    const adds = await page.evaluate(() => {
+      const xml = document.querySelector('#xml-out').textContent;
+      const one = (tag) => { const m = xml.match(new RegExp('<' + tag + '>([\\d.]+)</' + tag + '>')); return m ? Number(m[1]) : null; };
+      const lineNets = [...xml.matchAll(/<P_11>([\d.]+)<\/P_11>/g)].map((m) => Number(m[1]));
+      const lineVats = [...xml.matchAll(/<P_11Vat>([\d.]+)<\/P_11Vat>/g)].map((m) => Number(m[1]));
+      const sum = (a) => Math.round(a.reduce((x, y) => x + y, 0) * 100) / 100;
+      return {
+        lineNets, lineVats,
+        netBucket: one('P_13_1'), vatBucket: one('P_14_1'),
+        gross: one('P_15'),
+        sumNets: sum(lineNets), sumVats: sum(lineVats),
+      };
+    });
+    check('the per-rate net in the file equals the sum of the lines it covers',
+      adds.netBucket !== null && adds.lineNets.length > 0 &&
+      Math.abs(adds.netBucket - adds.sumNets) < 0.005,
+      JSON.stringify(adds));
+    check('and the invoice total equals the nets plus the VAT the file declares',
+      adds.gross !== null &&
+      Math.abs(adds.gross - (adds.sumNets + (adds.vatBucket === null ? adds.sumVats : adds.vatBucket))) < 0.005,
+      JSON.stringify(adds));
+
+    /* a fractional quantity has to read the same on screen as in the file */
+    await page.click('#btn-back-3');
+    await page.waitForTimeout(150);
+    await page.click('#btn-back-2');
+    await page.click('#btn-back-1');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    await page.fill('#paste-area', 'Nazwa\tIlość\tCena netto\tVAT\nMateriał\t1,5\t200,00\t23\nUsługa\t0,25\t400,00\t23');
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(400);
+    const qty = await page.evaluate(() => ({
+      shown: [...document.querySelectorAll('#inv-rows .inv-row span')].map((e) => e.textContent).join(' | '),
+      filed: [...document.querySelector('#xml-out').textContent.matchAll(/<P_8B>([\d.]+)<\/P_8B>/g)].map((m) => m[1]),
+    }));
+    check('a fractional quantity is not rounded away in the preview',
+      /1[.,]5/.test(qty.shown) && /0[.,]25/.test(qty.shown) &&
+      qty.filed.includes('1.50') && qty.filed.includes('0.25'),
+      JSON.stringify(qty));
 
     await ctx.close();
   }
