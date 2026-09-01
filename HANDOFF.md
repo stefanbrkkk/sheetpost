@@ -475,6 +475,39 @@ trigger still starts where the section does.
 
 ---
 
+## 12b. Known small stuff, deliberately left
+
+A final audit turned these up. Each was checked against the code and none of
+them is worth the regression risk of a late change, so they are written down
+rather than fixed. In rough order of how much they matter.
+
+- **Three clocks on one document.** `P_1` and `P_6` come from
+  `toISOString()` (UTC), while the invoice number uses local time. Between
+  midnight and the UTC offset on New Year's Eve, an invoice could be numbered
+  for one year and dated for the previous one. Pick one clock when the real
+  filing path is built server-side.
+- **The unit of measure is hardcoded.** `<P_8A>szt</P_8A>` is written for
+  every line even though the parser recognises `jm` / `jednostka` / `uom`
+  headers. If a sheet says hours or kilograms, the file still says pieces.
+- **The currency guard is cell-level.** `500,00 EUR` in a cell is caught; a
+  column headed "Cena netto (EUR)" is not.
+- **Row numbers count filtered rows.** Blank lines are dropped before the
+  grid is numbered, so a validation error's "row 7" is the seventh non-empty
+  row, not the seventh row of the sheet the reader is looking at.
+- **`#sendlog` does not re-render on a language switch.** Everything else in
+  the demo does. Switch language mid-filing and that one panel keeps the old
+  language until the next run.
+- **`--s1` to `--s7` are unused.** The space scale is declared with a comment
+  telling you to use it, and nothing does. Either adopt it or delete it; a
+  system nobody follows is worse than no system.
+- **The demo has no no-JS fallback of its own.** `noscript.css` covers the
+  hero, the rig, the fold and the marquee, but the demo section renders its
+  first step and no explanation of why it does nothing.
+- **`--fg-lo` and `--fg-faint` differ by 4/4/3 in RGB.** Two tiers the eye
+  reads as one colour.
+
+---
+
 ## 13. Judgement calls left to the owner
 
 These came out of the audit and were deliberately **not** changed, because

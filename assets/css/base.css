@@ -81,7 +81,10 @@ pre, code, kbd, samp {
   outline-offset: 3px;
   border-radius: 2px;
 }
-.paper-world :focus-visible, .fold :focus-visible { outline-color: var(--p-acc); }
+/* #fold, not .fold: there is no such class, so this half of the selector
+   matched nothing. The guarantee sheet is light paper and sits outside
+   .paper-world, so anything focusable inside it needs the paper accent. */
+.paper-world :focus-visible, #fold :focus-visible { outline-color: var(--p-acc); }
 
 /* skip link */
 .skip {
