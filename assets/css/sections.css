@@ -249,7 +249,10 @@
 }
 
 /* ================= TICKER BAND ================= */
-.tickerband { padding-block: 34px; border-top: 1px solid var(--line); position: relative; z-index: 2; }
+/* no border-top: .marquee-wrap directly above already draws a border-bottom
+   in the same colour, and the two stacked into a 2px rule where the system
+   uses 1px everywhere else */
+.tickerband { padding-block: 34px; position: relative; z-index: 2; }
 
 /* ================= MANDATE WALL ================= */
 .wall-wrap { position: relative; }

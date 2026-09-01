@@ -411,7 +411,10 @@
 
 /* ================= CTA ================= */
 .paper-world > .section:first-child { padding-top: clamp(56px, 7vw, 96px); }
-.cta { border-top: 1px solid var(--p-line); }
+/* `.section + .section { padding-top: 0 }` is right for sections that meet
+   with nothing between them, but this one draws a rule, and its heading sat
+   directly on the line with no space at all. */
+.cta { border-top: 1px solid var(--p-line); padding-top: clamp(56px, 8vh, 96px); }
 .cta .wrap-narrow { text-align: center; }
 .cta h2 { max-width: 16ch; margin-inline: auto; }
 .cta .lede { margin: 18px auto 0; }
