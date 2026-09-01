@@ -319,7 +319,6 @@
 .plan-hot .plan-desc { color: rgba(237,238,228,.75); }
 .plan-hot .plan-feats li { color: rgba(237,238,228,.82); }
 .plan-hot .plan-feats .ico { color: var(--acc); }
-.plan-hot { margin-top: 12px; }
 .plan-hot .stamp {
   position: absolute; top: -13px; right: 16px; font-size: var(--fs-mini); padding: 5px 12px; border-width: 0;
   opacity: 1; transform: rotate(-6deg); animation: none;
@@ -350,7 +349,7 @@
    feature list wants to be. */
 @media (max-width: 1080px) {
   .plans { grid-template-columns: 1fr 1fr; }
-  .plan-hot { transform: none; }
+  .plan-hot { margin-top: 0; }
 }
 @media (max-width: 620px) {
   .plans { grid-template-columns: 1fr; }

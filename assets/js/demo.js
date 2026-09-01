@@ -993,13 +993,36 @@
     });
   }
 
+  /* .form-error is display:none until it carries .show, so setting hidden
+     alone left the message written into an element nobody could see. */
+  function showGateMsg(text) {
+    var el = $('#gate-used');
+    if (!el) return;
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.add('show');
+  }
+  function hideGateMsg() {
+    var el = $('#gate-used');
+    if (!el) return;
+    el.classList.remove('show');
+    el.hidden = true;
+  }
+
   var gateForm = $('#gate-form');
   if (gateForm) {
     gateForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var em = $('#gate-email');
-      if (!em.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.value)) { em.setAttribute('aria-invalid', 'true'); return; }
+      if (!em.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.value)) {
+        /* a red border and an aria-invalid attribute is not an explanation:
+           say what is wrong, the way the waitlist form does */
+        em.setAttribute('aria-invalid', 'true');
+        showGateMsg(t('gate_bad_email'));
+        return;
+      }
       em.removeAttribute('aria-invalid');
+      hideGateMsg();
       store.set('sp_lead_email', em.value);
       /* grantBonus() reports whether the unlock was still available. Ignoring
          it meant re-submitting any address re-ran the filing every time, so
@@ -1007,8 +1030,7 @@
       if (grantBonus()) {
         onBonus();
       } else {
-        var used = $('#gate-used');
-        if (used) { used.textContent = t('gate_used'); used.hidden = false; }
+        showGateMsg(t('gate_used'));
         em.setAttribute('aria-invalid', 'true');
       }
     });

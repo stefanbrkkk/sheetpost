@@ -256,6 +256,13 @@
        to contain the wide sections, and overflow only propagates from body to
        the viewport while the root's own overflow is visible. Setting it on
        body alone left the page scrolling behind the open menu. */
+    /* The overlay is z-index 90 and the header is 60, so the burger that
+       opened the menu was painted underneath it and could not be tapped
+       again. Escape closed the menu and so did tapping a link, but a phone
+       has no Escape key: a reader who opened the menu and changed their mind
+       had no way out. The header rides above the overlay while it is open,
+       which is also what the burger's own aria-expanded has always claimed. */
+    if (nav) nav.classList.toggle('menu-open', open);
     document.documentElement.classList.toggle('is-locked', open);
     document.body.style.overflow = open ? 'hidden' : '';
     setBackgroundInert(open);

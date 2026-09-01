@@ -126,6 +126,12 @@
   .nav.scrolled { background: rgba(8, 11, 9, 0.97); }
 }
 .nav.hide { transform: translateY(-110%); }
+/* above the full screen menu, so its own toggle stays reachable */
+.nav.menu-open { z-index: calc(var(--z-menu) + 1); }
+.nav.menu-open.hide { transform: none; }
+.burger[aria-expanded="true"] { border-color: var(--acc); color: var(--acc); }
+.burger[aria-expanded="true"] .ico { transform: rotate(90deg); }
+.burger .ico { transition: transform var(--d2) var(--e-out); }
 
 .brand {
   display: inline-flex; align-items: center; gap: 10px;

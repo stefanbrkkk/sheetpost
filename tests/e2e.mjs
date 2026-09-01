@@ -532,6 +532,10 @@ try {
     const second = await page.evaluate(() => ({
       stillOpen: document.querySelector('#gate').classList.contains('show'),
       told: !document.querySelector('#gate-used').hidden,
+      visible: (function () {
+        const el = document.querySelector('#gate-used');
+        return getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0;
+      })(),
       message: document.querySelector('#gate-used').textContent,
       runs: localStorage.getItem('sp_runs'),
       upo: document.querySelector('#upo').classList.contains('show'),
@@ -540,8 +544,29 @@ try {
       second.runs === '9', `sp_runs=${second.runs}`);
     check('the gate stays open instead of letting the visitor through',
       second.stillOpen, JSON.stringify(second));
+    /* `hidden` was the wrong thing to read: .form-error is display:none until
+       it carries .show, so the message was being written into an element the
+       reader could not see and this check still passed. Ask the browser
+       whether it is actually on screen. */
     check('and says why, rather than failing silently',
-      second.told && second.message.length > 10, second.message);
+      second.told && second.message.length > 10 && second.visible,
+      JSON.stringify(second));
+
+    /* a malformed address must be explained, not just outlined in red */
+    await page.fill('#gate-email', 'not-an-email');
+    await page.click('#gate-form button[type="submit"]');
+    await page.waitForTimeout(400);
+    const badMail = await page.evaluate(() => {
+      const el = document.getElementById('gate-used');
+      const r = el.getBoundingClientRect();
+      return {
+        text: el.textContent,
+        visible: getComputedStyle(el).display !== 'none' && r.height > 0,
+        invalid: document.querySelector('#gate-email').getAttribute('aria-invalid') === 'true',
+      };
+    });
+    check('a malformed address in the gate is explained on screen',
+      badMail.visible && badMail.text.length > 8 && badMail.invalid, JSON.stringify(badMail));
 
     await ctx.close();
   }
@@ -1033,6 +1058,23 @@ try {
     const menuContrast = await contrastIssues(page, '#menu');
     check('everything in the open menu clears WCAG AA contrast',
       menuContrast.length === 0, menuContrast.join('\n'));
+    /* The overlay used to paint over the burger, so the control that opened
+       the menu could not close it. A phone has no Escape key, which made the
+       open menu a dead end for anyone who changed their mind. */
+    const reach = await page.evaluate(() => {
+      const b = document.querySelector('#burger');
+      const r = b.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { hit: at === b || b.contains(at), on: at ? at.tagName + '.' + (at.className || '').toString().split(' ')[0] : null };
+    });
+    check('the burger stays reachable while the menu is open', reach.hit, JSON.stringify(reach));
+    await page.click('#burger');
+    await page.waitForTimeout(350);
+    check('tapping it again closes the menu', await page.isHidden('#menu'));
+    check('and it reports the change', (await page.getAttribute('#burger', 'aria-expanded')) === 'false');
+
+    await page.click('#burger');
+    await page.waitForTimeout(300);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(250);
     check('Escape closes the menu', await page.isHidden('#menu'));
