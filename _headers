@@ -1,3 +1,16 @@
+# Taking payments does NOT require changing the policy below.
+# Hosted checkout is a link, and CSP has no directive that restricts where an
+# anchor may navigate: `navigate-to` was drafted for CSP3, then dropped, and no
+# browser ships it. `form-action 'self'` restricts where a <form> may POST, so
+# send buyers to checkout with an <a href>, never with a form POST.
+# A client-side checkout SDK is the case that would cost you this policy: its
+# bootstrap injects inline styles, which means style-src 'unsafe-inline'.
+# Do not do that. See "Taking payments" in HANDOFF.md.
+#
+# `connect-src 'self'` is the one line the waitlist touches: set
+# SP_CONFIG.formEndpoint and you must add that host here, because app.js
+# fetches it. That is a separate change from payments.
+
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

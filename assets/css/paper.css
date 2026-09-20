@@ -5,7 +5,12 @@
    ============================================================ */
 
 /* ================= THE BRIDGE: document feed slide-up ================= */
-.paper-bridge { position: relative; height: 160vh; background: var(--bg-0); }
+/* The runway used to be 160vh, and half of it was one rectangle translating
+   with every other element still at opacity 0. 132vh is enough for the whole
+   choreography now that the arrival lands before the stage pins and the
+   composition owns the pinned part. tests/e2e.mjs asserts that no stretch of
+   this section scrolls without something changing on screen. */
+.paper-bridge { position: relative; height: 132vh; background: var(--bg-0); }
 .bridge-stage {
   position: sticky; top: 0;
   height: 100vh; height: 100svh;
@@ -28,14 +33,42 @@
   background: var(--p-bg);
   color: var(--p-ink);
   will-change: transform;
+  /* A document has a head, a body and a foot. Centring one blob left roughly
+     280px of empty paper above and below it on a tall viewport, and pinned the
+     caption and the document number under the fixed header where nobody saw
+     them. Three rows put the furniture back on the page and use the height. */
   display: grid;
-  align-content: center;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  grid-template-rows: auto 1fr auto;
+  /* `clip`, never `hidden`.
+
+     This sheet covers the whole viewport, and `overflow: hidden` makes an
+     element a scroll container even though the user cannot scroll it. Once
+     its content was taller than the sheet, the wheel went to the sheet
+     instead of the page, and `overscroll-behavior: contain` stopped it
+     chaining back out: the page stopped dead at the guarantee section and
+     would move neither up nor down. It measured 1011px of content in an
+     844px sheet on a standard phone, and 645 in 620 on a short laptop
+     window. `clip` clips exactly the same way, to the rounded corners
+     included, without ever creating a scrollport. */
+  overflow: clip;
+  transform-origin: 50% 58%;
+  /* Off-screen once the sheet is flat and full bleed, so it costs nothing at
+     rest. While it is still scaled down it is what makes the thing read as a
+     sheet of paper being laid onto the ink world rather than a colour swap. */
+  box-shadow: 0 42px 90px -30px rgba(8, 11, 9, 0.8);
 }
+/* A short window cannot afford the generous document rhythm: tighten the body
+   rather than let the grid overflow a sheet that clips its own corners. */
+@media (max-height: 760px) {
+  .fold-content { padding-block: clamp(12px, 2vh, 24px); }
+  .trust-list { margin-top: 16px; gap: 9px; }
+  .trust-list li { font-size: 0.92rem; }
+  .lockcard { padding: 20px; }
+}
+/* the leading edge: the shadow the sheet casts on the ink world as it rises */
 .sheet-edge {
-  position: absolute; left: 0; right: 0; top: -10vh; height: 10vh;
-  background: linear-gradient(to bottom, rgba(8, 11, 9, 0.5), transparent);
+  position: absolute; left: 0; right: 0; top: -12vh; height: 12vh;
+  background: linear-gradient(to bottom, rgba(8, 11, 9, 0.62), rgba(8, 11, 9, 0.18) 55%, transparent);
   pointer-events: none;
 }
 .paper-sheet .guilloche { opacity: 0.35; }
@@ -49,16 +82,28 @@
 .fold-content {
   position: relative;
   width: 100%;
-  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  max-width: var(--wrap);
   margin-inline: auto;
   display: grid; grid-template-columns: 1.05fr 0.95fr;
   gap: clamp(24px, 4vw, 64px);
-  align-items: center;
-  padding: clamp(84px, 11vh, 124px) var(--gutter) clamp(44px, 6vh, 76px);
+  align-items: center; align-content: center;
+  padding: clamp(28px, 4vh, 56px) var(--gutter);
 }
-@media (max-width: 860px) {
-  .paper-bridge { height: 130vh; }
-  .fold-content { grid-template-columns: 1fr; gap: 32px; padding-top: 88px; }
+/* Narrow or short: the fold becomes an ordinary section that scrolls like any
+   other. The stacked composition cannot fit one screen on a phone, and a
+   pinned stage that cannot fit its own content is exactly how the scroll trap
+   above got created. Same shape the reduced-motion branch already used. */
+@media (max-width: 860px), (max-height: 700px) {
+  .paper-bridge { height: auto; }
+  .bridge-stage { position: static; height: auto; overflow: visible; }
+  .bridge-backdrop { display: none; }
+  .paper-sheet {
+    position: static; transform: none; overflow: visible;
+    box-shadow: none; border-radius: 0;
+  }
+  .sheet-edge { display: none; }
+  .fold-content { grid-template-columns: 1fr; gap: 28px; padding-block: clamp(40px, 7vh, 72px); }
+  .fold-head { padding-top: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .paper-bridge { height: auto; }
@@ -66,27 +111,42 @@
   .bridge-backdrop { display: none; }
   .paper-sheet { position: static; transform: none; overflow: visible; }
   .sheet-edge { display: none; }
+  .fold-head { padding-top: 28px; }
+}
+/* the guarantee is a document, so it carries document furniture: a caption
+   and a file number, on a ruled header band clear of the fixed nav */
+.fold-head {
+  width: 100%;
+  /* var(--wrap), not var(--wrap) + 2 * var(--gutter).
+
+     `.wrap` is max-width var(--wrap) with padding-inline var(--gutter) and
+     border-box sizing, so every other section on the page has an inner
+     content column of var(--wrap) minus two gutters. Adding the gutters back
+     into the max-width here made the guarantee section's column 96px wider
+     than every other one, so the headline, the guarantees and the card sat
+     outside the grid the rest of the page is aligned to. */
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding: calc(var(--nav-h) + 18px) var(--gutter) 14px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 20px;
+  border-bottom: 1px solid var(--p-line);
 }
 .fold-caption {
-  position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
   font-family: var(--font-m); font-size: var(--fs-nano); letter-spacing: 0.16em;
   color: var(--p-lo); text-transform: uppercase;
 }
-/* the guarantee is a document, so it carries document furniture */
 .fold-docno {
-  position: absolute; top: 22px; right: clamp(20px, 4vw, 56px);
+  font-family: var(--font-m);
   font-size: var(--fs-nano); letter-spacing: 0.14em; color: var(--p-lo);
 }
 .fold-foot {
   width: 100%;
-  max-width: calc(var(--wrap) + 2 * var(--gutter));
+  max-width: var(--wrap);
   margin-inline: auto;
-  padding: 0 var(--gutter) clamp(28px, 4vh, 44px);
+  padding: 14px var(--gutter) clamp(22px, 3.5vh, 38px);
   display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
   color: var(--p-lo);
   border-top: 1px solid var(--p-line);
-  margin-top: clamp(16px, 3vh, 32px);
-  padding-top: 16px;
 }
 .fold-foot .mono { font-size: var(--fs-nano); letter-spacing: 0.1em; }
 .fold-scribble { width: 132px; height: 26px; color: var(--p-ink); opacity: 0.55; flex: none; }
@@ -113,7 +173,11 @@
 .paper-world .lede { color: var(--p-fg); }
 .paper-world .kicker { color: var(--p-acc); }
 .paper-world a { color: var(--p-acc); }
-.paper-world a:hover { color: var(--p-ink); }
+/* Buttons are excluded on purpose. A .btn is an <a> here, so an unscoped
+   link hover repainted the primary CTA's label in the ink colour on top of
+   the accent fill, which is 1.4:1: hovering the main paid button made its
+   label almost disappear. */
+.paper-world a:not(.btn):hover { color: var(--p-ink); }
 
 /* ================= GUARANTEE ================= */
 .trust-list { list-style: none; padding: 0; margin-top: 26px; display: grid; gap: 14px; }
@@ -192,6 +256,13 @@
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.85' intercept='0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23r)'/%3E%3C/svg%3E");
   mask-size: 120px;
 }
+/* the ring the seal throws off as it lands: a stamp hitting paper, not a fade */
+.lockcard-ring {
+  position: absolute; top: 20px; right: 20px;
+  width: 62px; height: 62px; border-radius: 50%;
+  border: 2px solid var(--p-acc);
+  opacity: 0; pointer-events: none; z-index: 1;
+}
 .lockcard-sheen {
   position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: radial-gradient(420px circle at var(--mx, 70%) var(--my, 20%), rgba(255,255,255,.5), transparent 42%);
@@ -239,10 +310,16 @@
 .plan-hot {
   background: var(--p-ink);
   border-color: var(--p-ink);
-  transform: translateY(-14px);
+  /* The lift is a margin, not a transform, because the reveal system owns
+     transform on this element: `[data-reveal].in { transform: none }` is
+     (0,2,0) and out-specified `transform: translateY(-14px)` at (0,1,0), so
+     the featured plan sat flush with its neighbours and then jumped 18px on
+     hover. A negative margin also makes the card taller than the others,
+     which is what "featured" should look like anyway. */
+  margin-top: -14px;
   box-shadow: 0 26px 54px -30px rgba(20, 33, 26, 0.6);
 }
-.plan-hot:hover { transform: translateY(-18px); box-shadow: 0 32px 64px -30px rgba(20, 33, 26, 0.7); }
+.plan-hot:hover { transform: translateY(-4px); box-shadow: 0 32px 64px -30px rgba(20, 33, 26, 0.7); }
 .plan-hot .plan-name, .plan-hot .plan-price { color: var(--p-bg); }
 /* the unit sits on the dark card too: --p-lo is unreadable there */
 .plan-hot .plan-price .pu { color: rgba(237, 238, 228, .78); }
@@ -250,7 +327,6 @@
 .plan-hot .plan-desc { color: rgba(237,238,228,.75); }
 .plan-hot .plan-feats li { color: rgba(237,238,228,.82); }
 .plan-hot .plan-feats .ico { color: var(--acc); }
-.plan-hot { margin-top: 12px; }
 .plan-hot .stamp {
   position: absolute; top: -13px; right: 16px; font-size: var(--fs-mini); padding: 5px 12px; border-width: 0;
   opacity: 1; transform: rotate(-6deg); animation: none;
@@ -276,9 +352,12 @@
 .plans-toggle button[aria-pressed="true"] { color: var(--p-bg); border-color: transparent; background: var(--p-ink); }
 .pricing-note { margin-top: 20px; font-family: var(--font-m); font-size: var(--fs-mini); color: var(--p-lo); max-width: 76ch; }
 .pricing-note + .pricing-note { margin-top: 8px; }
-@media (max-width: 1020px) {
+/* 1080px, matching the width at which the header gives up its links. At 1020
+   each of the four plans was about 228px wide, which is narrower than its own
+   feature list wants to be. */
+@media (max-width: 1080px) {
   .plans { grid-template-columns: 1fr 1fr; }
-  .plan-hot { transform: none; }
+  .plan-hot { margin-top: 0; }
 }
 @media (max-width: 620px) {
   .plans { grid-template-columns: 1fr; }
@@ -313,7 +392,9 @@
 .paper-world .field label { color: var(--p-ink); }
 .paper-world .checkline { color: var(--p-lo); }
 .paper-world .checkline input { accent-color: var(--p-acc); }
-.paper-world .plans-toggle button:hover { color: var(--p-ink); }
+/* The selected chip is ink on ink: it already has `background: var(--p-ink)`,
+   so painting its label --p-ink on hover made the label vanish entirely. */
+.paper-world .plans-toggle button:not([aria-pressed="true"]):hover { color: var(--p-ink); }
 .paper-world .faq-item { background: var(--p-panel); border-color: var(--p-line); }
 .paper-world .faq-item summary { color: var(--p-ink); }
 .paper-world .faq-item summary:hover { background: var(--p-bg-2); }
@@ -321,12 +402,19 @@
 .paper-world .faq-body { color: var(--p-fg); }
 .paper-world .btn-primary { background: var(--p-acc); color: #F2F5EC; }
 .paper-world .btn-primary::after { content: none; }
+.paper-world .btn-primary:disabled,
+.paper-world .btn-primary[aria-disabled="true"] {
+  background: var(--p-bg-2); color: var(--p-fg); border-color: var(--p-line-hi);
+}
 .paper-world .btn-ghost { border-color: var(--p-line-hi); color: var(--p-ink); }
 .paper-world .btn-ghost:hover { border-color: var(--p-ink); transform: translateY(-1px); }
 
 /* ================= CTA ================= */
 .paper-world > .section:first-child { padding-top: clamp(56px, 7vw, 96px); }
-.cta { border-top: 1px solid var(--p-line); }
+/* `.section + .section { padding-top: 0 }` is right for sections that meet
+   with nothing between them, but this one draws a rule, and its heading sat
+   directly on the line with no space at all. */
+.cta { border-top: 1px solid var(--p-line); padding-top: clamp(56px, 8vh, 96px); }
 .cta .wrap-narrow { text-align: center; }
 .cta h2 { max-width: 16ch; margin-inline: auto; }
 .cta .lede { margin: 18px auto 0; }

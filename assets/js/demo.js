@@ -98,12 +98,19 @@
       if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');   /* 1.200,50 */
       else s = s.replace(/,/g, '');                                          /* 1,200.50 */
     } else if (lastComma >= 0) {
-      /* a lone comma is a decimal separator unless it groups thousands (1,200) */
+      /* A lone separator with three digits after it is ambiguous: "1,200" is
+         a thousand in an English sheet and 1.2 in a Polish one. The grouping
+         reading wins, because invoice columns carry money far more often than
+         three-decimal quantities.
+         One case is not ambiguous at all, though: nobody writes a thousands
+         group starting with zero, so "0,125" is 0.125 and never 125. Reading
+         it as 125 was a factor of a thousand on a unit price. */
       var after = s.length - lastComma - 1;
-      s = (after === 3 && /^\d{1,3}(,\d{3})+$/.test(s)) ? s.replace(/,/g, '') : s.replace(',', '.');
+      var grouped = after === 3 && /^[1-9]\d{0,2}(,\d{3})+$/.test(s);
+      s = grouped ? s.replace(/,/g, '') : s.replace(',', '.');
     } else if (lastDot >= 0) {
       var afterDot = s.length - lastDot - 1;
-      if (afterDot === 3 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');  /* 1.200 */
+      if (afterDot === 3 && /^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');  /* 1.200 */
     }
     var n = parseFloat(s);
     return isNaN(n) ? NaN : n;
@@ -714,25 +721,50 @@
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  /* Round the decimal representation, not the binary double.
+
+     toLocaleString and toFixed do not agree: the first rounds the shortest
+     decimal form half up, the second rounds the exact double. Over 200000
+     sampled amounts they differed about 9700 times, which meant the invoice
+     preview could read 72.73 while the XML filed 72.72 for the same line.
+     On a product whose whole promise is that what you see is what gets
+     filed, the two sides have to round once, together. */
+  function round(n, dec) {
+    if (typeof n !== 'number' || !isFinite(n)) return 0;
+    var d = dec === undefined ? 2 : dec;
+    var shifted = Number(n + 'e' + d);
+    if (!isFinite(shifted)) return n;
+    return Number(Math.round(shifted) + 'e-' + d);
+  }
   function fmt(n, dec) {
     var loc = window.SPLocale ? window.SPLocale() : 'pl-PL';
-    return n.toLocaleString(loc, { minimumFractionDigits: dec === undefined ? 2 : dec, maximumFractionDigits: dec === undefined ? 2 : dec });
+    var d = dec === undefined ? 2 : dec;
+    return round(n, d).toLocaleString(loc, { minimumFractionDigits: d, maximumFractionDigits: d });
   }
   /* the XML side of the house: dot decimals, no grouping, no locale */
   function num(n, dec) {
     if (typeof n !== 'number' || !isFinite(n)) return '0';
-    if (dec !== undefined) return n.toFixed(dec);
+    if (dec !== undefined) return round(n, dec).toFixed(dec);
     return String(Math.round(n * 1e6) / 1e6);
   }
   function compute() {
+    /* Round each line once, here, and let every consumer read the same
+       numbers. The per-rate summary used to accumulate unrounded line nets
+       and round the bucket at output, while each FaWiersz rounded its own
+       net, so the sum of the lines and the bucket that is supposed to cover
+       them could differ by a cent. FA(3) expects them to agree, and a
+       document whose parts do not add up is exactly what gets rejected. */
     var rows = state.rows.map(function (r) {
-      var net = (r.qty || 0) * (r.unit || 0);
+      var net = round((r.qty || 0) * (r.unit || 0), 2);
       var rate = typeof r.vat === 'number' ? r.vat : 0;
-      var vat = net * rate / 100;
-      return { name: r.name, qty: r.qty, unit: r.unit, rate: r.vat, net: net, vat: vat, gross: net + vat };
+      var vat = round(net * rate / 100, 2);
+      return { name: r.name, qty: r.qty, unit: r.unit, rate: r.vat, net: net, vat: vat, gross: round(net + vat, 2) };
     });
     var totals = rows.reduce(function (a, r) {
-      a.net += r.net; a.vat += r.vat; a.gross += r.gross; return a;
+      a.net = round(a.net + r.net, 2);
+      a.vat = round(a.vat + r.vat, 2);
+      a.gross = round(a.gross + r.gross, 2);
+      return a;
     }, { net: 0, vat: 0, gross: 0 });
     return { rows: rows, totals: totals };
   }
@@ -745,6 +777,16 @@
      --------------------------------------------------------------- */
   /* FA(3) allows up to 6 decimals on a quantity; carry only what is needed
      and never fewer than two, so 1 -> 1.00 and 0.5 -> 0.50 */
+  /* the readable twin of qtyStr: same value, localised separator, trailing
+     zeros trimmed because a quantity of 3 should read "3", not "3.00" */
+  function fmtQty(q) {
+    if (typeof q !== 'number' || !isFinite(q)) return '0';
+    var dec = 0;
+    var trimmed = q.toFixed(6).replace(/0+$/, '');
+    if (trimmed.indexOf('.') >= 0) dec = Math.min(6, trimmed.split('.')[1].length);
+    var loc = window.SPLocale ? window.SPLocale() : 'pl-PL';
+    return q.toLocaleString(loc, { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  }
   function qtyStr(q) {
     if (typeof q !== 'number' || !isFinite(q)) return '0.00';
     var out = q.toFixed(6).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -776,8 +818,10 @@
     data.rows.forEach(function (r) {
       var keys = vatBucketKeys(r.rate);
       if (!keys[0]) return;
-      buckets[keys[0]] = (buckets[keys[0]] || 0) + r.net;
-      if (keys[1]) buckets[keys[1]] = (buckets[keys[1]] || 0) + r.vat;
+      /* r.net and r.vat are already rounded to the cent, so the bucket is
+         exactly the sum of the lines the file carries */
+      buckets[keys[0]] = round((buckets[keys[0]] || 0) + r.net, 2);
+      if (keys[1]) buckets[keys[1]] = round((buckets[keys[1]] || 0) + r.vat, 2);
     });
     var ORDER = ['P_13_1', 'P_14_1', 'P_13_2', 'P_14_2', 'P_13_3', 'P_14_3', 'P_13_6_1', 'P_13_7', 'P_13_8', 'P_13_9'];
 
@@ -859,7 +903,10 @@
       var div = document.createElement('div');
       div.className = 'inv-row';
       var s1 = document.createElement('span');
-      s1.textContent = r.name + (r.qty !== 1 ? ' × ' + fmt(r.qty, 0) : '');
+      /* not fmt(qty, 0): that rendered 1.5 as "2" and 0.25 as "0" while the
+         file carried 1.50 and 0.25. A quantity keeps the precision it was
+         given, up to the six decimals FA(3) allows. */
+      s1.textContent = r.name + (r.qty !== 1 ? ' × ' + fmtQty(r.qty) : '');
       var b = document.createElement('b');
       b.className = 'mono';
       b.textContent = fmt(r.net) + ' ' + cur;
@@ -931,6 +978,7 @@
   }
   function showGate() {
     gate.classList.add('show');
+    document.documentElement.classList.add('is-locked');
     document.body.style.overflow = 'hidden';
     setInert(true);
     var st = gate.querySelector('.stamp');
@@ -940,6 +988,7 @@
   }
   function hideGate() {
     gate.classList.remove('show');
+    document.documentElement.classList.remove('is-locked');
     document.body.style.overflow = '';
     setInert(false);
     var back = $('#btn-to-send');
@@ -968,16 +1017,46 @@
     });
   }
 
+  /* .form-error is display:none until it carries .show, so setting hidden
+     alone left the message written into an element nobody could see. */
+  function showGateMsg(text) {
+    var el = $('#gate-used');
+    if (!el) return;
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.add('show');
+  }
+  function hideGateMsg() {
+    var el = $('#gate-used');
+    if (!el) return;
+    el.classList.remove('show');
+    el.hidden = true;
+  }
+
   var gateForm = $('#gate-form');
   if (gateForm) {
     gateForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var em = $('#gate-email');
-      if (!em.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.value)) { em.setAttribute('aria-invalid', 'true'); return; }
+      if (!em.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.value)) {
+        /* a red border and an aria-invalid attribute is not an explanation:
+           say what is wrong, the way the waitlist form does */
+        em.setAttribute('aria-invalid', 'true');
+        showGateMsg(t('gate_bad_email'));
+        return;
+      }
       em.removeAttribute('aria-invalid');
+      hideGateMsg();
       store.set('sp_lead_email', em.value);
-      grantBonus();
-      onBonus();
+      /* grantBonus() reports whether the unlock was still available. Ignoring
+         it meant re-submitting any address re-ran the filing every time, so
+         the gate could be walked straight through for ever. */
+      if (grantBonus()) {
+        onBonus();
+      } else {
+        showGateMsg(t('gate_used'));
+        em.setAttribute('aria-invalid', 'true');
+      }
     });
   }
 
@@ -989,8 +1068,9 @@
        the confirmation the visitor just earned */
     if (lead) lead.textContent = t('d_bonus') + ' · ' + t('d_bonus_mail', { mail: em });
     runsLabel();
-    /* resume the filing the visitor was trying to make */
-    if (state.xml && !sending) doSend();
+    /* resume the filing the visitor was trying to make, but only if the
+       unlock actually left them a run to spend */
+    if (state.xml && !sending && runsLeft() > 0) doSend();
   }
   window.SPDemo = { onBonus: onBonus };
 

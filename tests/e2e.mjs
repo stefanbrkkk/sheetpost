@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.SP_PORT || 8199);
-const BASE = `http://127.0.0.1:${PORT}`;
+let BASE = `http://127.0.0.1:${PORT}`;
 const LANGS = ['pl', 'en', 'de', 'hr', 'ro'];
 
 /* The contrast maths has to run inside the page, and every group builds its own
@@ -68,6 +68,19 @@ window.__spContrast = (root) => {
 `;
 
 /* installs the scanner, then runs it over the whole page or one subtree */
+/* The header hides itself on scroll down and comes back on scroll up, so any
+   test that reaches for a header control while the page is scrolled has to do
+   what a reader would do and bring it back first. Until the intro stopped
+   leaving an inline transform on .nav, that inline style silently outranked
+   .nav.hide and the header never actually hid, which is why this was not
+   needed before. */
+async function showNav(page) {
+  await page.evaluate(() => window.scrollBy({ top: -160, behavior: 'instant' }));
+  await page.waitForFunction(() => !document.querySelector('.nav').classList.contains('hide'),
+    null, { timeout: 4000 });
+  await page.waitForTimeout(320);
+}
+
 async function contrastIssues(page, selector) {
   await page.evaluate(CONTRAST_SRC);
   return page.evaluate(
@@ -116,8 +129,23 @@ function startServer() {
         out.end(body);
       } catch (e) { out.writeHead(500); out.end(String(e)); }
     });
-    srv.on('error', rej);
-    srv.listen(PORT, '127.0.0.1', () => res(srv));
+    /* Take the next free port rather than failing. A developer with anything
+       already on 8199, or a previous run whose server outlived it, could not
+       run this suite at all: it died on EADDRINUSE before the first check. */
+    let port = PORT;
+    srv.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE' && port < PORT + 40) {
+        port += 1;
+        srv.listen(port, '127.0.0.1');
+        return;
+      }
+      rej(err);
+    });
+    srv.listen(port, '127.0.0.1', () => {
+      if (port !== PORT) console.log(`  (port ${PORT} was busy, serving on ${port})`);
+      BASE = `http://127.0.0.1:${port}`;
+      res(srv);
+    });
   });
 }
 
@@ -144,6 +172,39 @@ try {
      ========================================================= */
   group('1. First paint and the hero');
   {
+    /* The largest element on the page must not be erased after it has been
+       painted. The markup ships with html.no-js, which forces [data-reveal]
+       visible; dropping that class used to hand the hero back to
+       `[data-reveal] { opacity: 0 }` until an observer callback could restore
+       it, so the headline measured 0 at 377ms and did not settle until about
+       1059ms. Sample every frame from navigation and require that once it is
+       visible it stays visible. */
+    {
+      const lcpCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const lcpPage = await lcpCtx.newPage();
+      await lcpPage.addInitScript(() => {
+        window.__heroSamples = [];
+        const t0 = performance.now();
+        const tick = () => {
+          const h = document.querySelector('#hero-h1');
+          if (h) window.__heroSamples.push([Math.round(performance.now() - t0), +getComputedStyle(h).opacity]);
+          if (performance.now() - t0 < 2500) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      await lcpPage.goto(BASE, { waitUntil: 'load' });
+      await lcpPage.waitForTimeout(2700);
+      const samples = await lcpPage.evaluate(() => window.__heroSamples);
+      const dips = samples.filter(([, op]) => op < 0.9);
+      check('the hero headline is never erased after it is painted',
+        dips.length === 0,
+        dips.length ? `opacity under 0.9 from ${dips[0][0]}ms to ${dips[dips.length - 1][0]}ms (${dips.length} frames)` : '');
+      check('and it is solid within the first half second',
+        samples.length > 0 && samples.some(([t, op]) => t < 500 && op > 0.99),
+        JSON.stringify(samples.slice(0, 3)));
+      await lcpCtx.close();
+    }
+
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     watch(page, 'desktop/pl', noise);
@@ -182,12 +243,47 @@ try {
     const prog = await page.evaluate(() => getComputedStyle(document.querySelector('#scroll-progress')).transform);
     check('reading progress reaches the end', /matrix\(1,/.test(prog) || prog.startsWith('matrix(0.9'), prog);
 
+
+    /* Nothing the intro animates may be left invisible, and nothing may be
+       left with an inline opacity.
+
+       `gsap.from()` infers its end value by reading the element's current
+       style and then bakes the result into an inline style that outlives the
+       tween. When the inference goes wrong the element is stranded at the
+       tween's start values forever, and no existing check noticed, because a
+       transparent element still has a layout box, still has a colour, and
+       still passes contrast: the header's primary CTA sat at opacity 0 on
+       every desktop load. Assert the settled state, and assert the residue
+       that causes it. */
+    const introTargets = await page.evaluate(() => {
+      const SELECTORS = ['.nav', '#nav .brand', '#nav .nav-links a', '#nav .nav-right > *',
+        '#hero-h1 .hl-i', '.hero-copy .chip', '.hero-sub', '.hero-cta .btn',
+        '.hero-meta', '#machine', '.hero-scroll'];
+      const faint = [];
+      const residue = [];
+      for (const sel of SELECTORS) {
+        for (const el of document.querySelectorAll(sel)) {
+          if (el.offsetParent === null && el !== document.querySelector('.nav')) continue;
+          const op = +getComputedStyle(el).opacity;
+          const name = `${sel} -> ${el.tagName}.${(el.className || '').toString().split(' ')[0]}`;
+          if (op < 0.99) faint.push(`${name} = ${op}`);
+          if (el.style && el.style.opacity !== '') residue.push(`${name} inline opacity=${el.style.opacity}`);
+        }
+      }
+      return { faint, residue };
+    });
+    check('nothing the intro animates is left invisible',
+      introTargets.faint.length === 0, introTargets.faint.join('\n'));
+    check('the intro leaves no inline opacity behind to be misread later',
+      introTargets.residue.length === 0, introTargets.residue.join('\n'));
+
     await ctx.close();
   }
 
   /* =========================================================
      2. LANGUAGE
      ========================================================= */
+
   group('2. Language switching');
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -262,6 +358,7 @@ try {
     await page.waitForTimeout(200);
     check('EUR toggle switches the amount and the unit', /9\s*€/.test(await price()), await price());
 
+    await showNav(page);
     await page.click('.langs button[data-lang="de"]');
     await page.waitForTimeout(300);
     check('a language switch respects a manual currency choice', /9\s*€/.test(await price()), await price());
@@ -420,12 +517,71 @@ try {
     check('the run counter still updates next to it', after.runs.length > 0, after.runs);
     check('the filing the visitor asked for resumes', after.upo);
 
-    /* the bonus is worth three runs, once */
-    const grant = await page.evaluate(() => {
-      localStorage.setItem('sp_runs', '9');
-      return localStorage.getItem('sp_bonus');
-    });
+    /* The bonus is worth three runs, once.
+
+       The old assertion here read the sp_bonus flag and stopped. The flag was
+       being written correctly the whole time and the paywall still did not
+       hold: the submit handler called grantBonus() and threw the return value
+       away, so every resubmission ran onBonus(), which hid the gate and filed
+       again. Test the walk-through instead of the bookkeeping. */
+    const grant = await page.evaluate(() => localStorage.getItem('sp_bonus'));
     check('the bonus grant is recorded so it cannot be farmed', grant === '1', grant);
+
+    await page.evaluate(() => { localStorage.setItem('sp_runs', '9'); });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1400);
+    await page.evaluate(() => document.querySelector('#demo').scrollIntoView());
+    await page.waitForTimeout(300);
+    await page.click('[role="tab"][aria-controls="d-send"]').catch(() => {});
+    await page.waitForTimeout(300);
+    const reopened = await page.evaluate(() => {
+      const el = document.querySelector('#gate');
+      el.hidden = false; el.classList.add('show');
+      return el.classList.contains('show');
+    });
+    check('the gate can be reached again once the runs are spent', reopened);
+
+    await page.fill('#gate-email', 'second@example.com');
+    await page.click('#gate-form button[type="submit"]');
+    await page.waitForTimeout(1200);
+    const second = await page.evaluate(() => ({
+      stillOpen: document.querySelector('#gate').classList.contains('show'),
+      told: !document.querySelector('#gate-used').hidden,
+      visible: (function () {
+        const el = document.querySelector('#gate-used');
+        return getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0;
+      })(),
+      message: document.querySelector('#gate-used').textContent,
+      runs: localStorage.getItem('sp_runs'),
+      upo: document.querySelector('#upo').classList.contains('show'),
+    }));
+    check('a second address does not buy more runs',
+      second.runs === '9', `sp_runs=${second.runs}`);
+    check('the gate stays open instead of letting the visitor through',
+      second.stillOpen, JSON.stringify(second));
+    /* `hidden` was the wrong thing to read: .form-error is display:none until
+       it carries .show, so the message was being written into an element the
+       reader could not see and this check still passed. Ask the browser
+       whether it is actually on screen. */
+    check('and says why, rather than failing silently',
+      second.told && second.message.length > 10 && second.visible,
+      JSON.stringify(second));
+
+    /* a malformed address must be explained, not just outlined in red */
+    await page.fill('#gate-email', 'not-an-email');
+    await page.click('#gate-form button[type="submit"]');
+    await page.waitForTimeout(400);
+    const badMail = await page.evaluate(() => {
+      const el = document.getElementById('gate-used');
+      const r = el.getBoundingClientRect();
+      return {
+        text: el.textContent,
+        visible: getComputedStyle(el).display !== 'none' && r.height > 0,
+        invalid: document.querySelector('#gate-email').getAttribute('aria-invalid') === 'true',
+      };
+    });
+    check('a malformed address in the gate is explained on screen',
+      badMail.visible && badMail.text.length > 8 && badMail.invalid, JSON.stringify(badMail));
 
     await ctx.close();
   }
@@ -521,6 +677,118 @@ try {
     check('a line-total column is skipped rather than used as the unit price',
       wartosc && wartosc.map.join(',') === 'name,qty,unit,skip,vat', wartosc && wartosc.map.join(','));
 
+    /* "0,125" was read as 125: the thousands-group heuristic matched it,
+       even though nobody writes a thousands group starting with a zero. A
+       unit price out by a factor of a thousand is the worst arithmetic bug
+       this parser can have. */
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    await page.fill('#paste-area', 'Nazwa\tIlość\tCena netto\tVAT\nMateriał\t4\t0,125\t23');
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(350);
+    const tiny = await page.textContent('#inv-total');
+    check('a leading zero is a decimal separator, not a thousands group',
+      /0[.,]6[12]/.test(tiny.replace(/\s/g, '')), `4 x 0,125 net + 23% VAT rendered as "${tiny}"`);
+
+    /* The preview and the XML must round the same way. They did not: one
+       rounded the shortest decimal form, the other the exact double, so the
+       same line could read 72.73 on screen and 72.72 in the file. Feed
+       amounts that land on the half-cent boundary and compare the two. */
+    await page.click('#btn-back-3');
+    await page.waitForTimeout(150);
+    await page.click('#btn-back-2');
+    await page.click('#btn-back-1');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    /* four integer digits, so these read as decimals rather than as thousands
+       groups, and each one lands on the half-cent boundary that made the two
+       rounding paths disagree */
+    await page.fill('#paste-area',
+      'Nazwa\tIlość\tCena netto\tVAT\n' +
+      ['1072,725', '1884,675', '1008,655', '2198,135', '3623,755', '4059,125']
+        .map((v, i) => `Pozycja ${i + 1}\t1\t${v}\t23`).join('\n'));
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(400);
+    const agree = await page.evaluate(() => {
+      const strip = (t) => t.replace(/[\s\u00a0]/g, '').replace(/PLN|zł|EUR|lei/g, '').replace(',', '.');
+      const shown = [...document.querySelectorAll('#inv-rows .inv-row b')].map((b) => strip(b.textContent));
+      const xml = document.querySelector('#xml-out').textContent;
+      /* every amount the file actually carries */
+      const filed = [...xml.matchAll(/<(P_11|P_12A|P_13_\d|P_14_\d|P_15)>([\d.]+)<\/\1>/g)].map((m) => m[2]);
+      const total = strip((document.querySelector('#inv-total') || {}).textContent || '');
+      const p15 = (xml.match(/<P_15>([\d.]+)<\/P_15>/) || [, ''])[1];
+      return { shown, filed, total, p15, sampleXml: xml.slice(0, 0) };
+    });
+    check('every amount in the file is a clean two-decimal number',
+      agree.filed.length > 0 && agree.filed.every((v) => /^\d+\.\d{2}$/.test(v)),
+      JSON.stringify(agree.filed));
+    check('the invoice total on screen is the total in the file',
+      agree.p15 !== '' && Number(agree.p15) === Number(agree.total),
+      `screen ${agree.total}  file ${agree.p15}`);
+    const strayed = agree.shown.filter((v) => v && !agree.filed.includes(String(Number(v).toFixed(2))));
+    check('every line total on screen appears in the file with the same rounding',
+      strayed.length === 0,
+      `shown ${JSON.stringify(agree.shown)}\nfiled ${JSON.stringify(agree.filed)}`);
+
+    /* The document has to add up on its own terms. The per-rate summary used
+       to accumulate unrounded line nets and round only at output, while each
+       line rounded itself, so P_13_1 could miss the sum of the lines it
+       covers by a cent. That is the arithmetic KSeF checks. */
+    const adds = await page.evaluate(() => {
+      const xml = document.querySelector('#xml-out').textContent;
+      const one = (tag) => { const m = xml.match(new RegExp('<' + tag + '>([\\d.]+)</' + tag + '>')); return m ? Number(m[1]) : null; };
+      const lineNets = [...xml.matchAll(/<P_11>([\d.]+)<\/P_11>/g)].map((m) => Number(m[1]));
+      const lineVats = [...xml.matchAll(/<P_11Vat>([\d.]+)<\/P_11Vat>/g)].map((m) => Number(m[1]));
+      const sum = (a) => Math.round(a.reduce((x, y) => x + y, 0) * 100) / 100;
+      return {
+        lineNets, lineVats,
+        netBucket: one('P_13_1'), vatBucket: one('P_14_1'),
+        gross: one('P_15'),
+        sumNets: sum(lineNets), sumVats: sum(lineVats),
+      };
+    });
+    check('the per-rate net in the file equals the sum of the lines it covers',
+      adds.netBucket !== null && adds.lineNets.length > 0 &&
+      Math.abs(adds.netBucket - adds.sumNets) < 0.005,
+      JSON.stringify(adds));
+    check('and the invoice total equals the nets plus the VAT the file declares',
+      adds.gross !== null &&
+      Math.abs(adds.gross - (adds.sumNets + (adds.vatBucket === null ? adds.sumVats : adds.vatBucket))) < 0.005,
+      JSON.stringify(adds));
+
+    /* a fractional quantity has to read the same on screen as in the file */
+    await page.click('#btn-back-3');
+    await page.waitForTimeout(150);
+    await page.click('#btn-back-2');
+    await page.click('#btn-back-1');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#paste-wrap').hidden = false; });
+    await page.fill('#paste-area', 'Nazwa\tIlość\tCena netto\tVAT\nMateriał\t1,5\t200,00\t23\nUsługa\t0,25\t400,00\t23');
+    await page.waitForTimeout(350);
+    await page.click('#btn-to-map');
+    await page.waitForTimeout(250);
+    await page.click('#btn-to-check');
+    await page.waitForTimeout(1100);
+    await page.click('#btn-to-preview');
+    await page.waitForTimeout(400);
+    const qty = await page.evaluate(() => ({
+      shown: [...document.querySelectorAll('#inv-rows .inv-row span')].map((e) => e.textContent).join(' | '),
+      filed: [...document.querySelector('#xml-out').textContent.matchAll(/<P_8B>([\d.]+)<\/P_8B>/g)].map((m) => m[1]),
+    }));
+    check('a fractional quantity is not rounded away in the preview',
+      /1[.,]5/.test(qty.shown) && /0[.,]25/.test(qty.shown) &&
+      qty.filed.includes('1.50') && qty.filed.includes('0.25'),
+      JSON.stringify(qty));
+
     await ctx.close();
   }
 
@@ -576,6 +844,111 @@ try {
   }
 
   /* =========================================================
+     7b. CHECKOUT WIRING
+     ========================================================= */
+  group('7b. Checkout');
+  {
+    /* unconfigured: the site must behave exactly as it did before payments
+       existed, because that is the state it ships in today */
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    watch(page, 'checkout/off', noise);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+
+    const off = await page.evaluate(() => ({
+      state: window.SPCheckout,
+      hrefs: [...document.querySelectorAll('a[data-checkout]')].map((a) => a.getAttribute('href')),
+      live: document.querySelectorAll('[data-checkout-live]').length,
+      noteHidden: document.getElementById('checkout-cur-note').hidden,
+    }));
+    check('the checkout module loads', !!off.state, JSON.stringify(off.state));
+    check('three plan buttons are wired for checkout', off.state.buttons === 3, off.state.buttons);
+    check('with no URLs configured nothing is rewritten', off.state.wired === 0 && off.live === 0,
+      JSON.stringify(off));
+    check('and the buttons keep the destinations in the markup',
+      off.hrefs.every((h) => h === '#waitlist' || h === '#partner'), off.hrefs.join(', '));
+    check('the billing-currency note stays hidden while checkout is off', off.noteHidden === true);
+    await ctx.close();
+
+    /* configured: inject a config before any script runs, exactly as editing
+       config.js would, and prove the buttons become real checkout links */
+    const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page2 = await ctx2.newPage();
+    watch(page2, 'checkout/on', noise);
+    await page2.addInitScript(() => {
+      window.SP_CONFIG = window.SP_CONFIG || {};
+      window.__SP_TEST_CHECKOUT = {
+        provider: 'test',
+        currencies: ['eur', 'pln'],
+        links: {
+          solo: 'https://pay.example.com/checkout/solo',
+          business: 'https://pay.example.com/checkout/business',
+          accountant: 'not-a-url',
+        },
+      };
+    });
+    /* config.js defines SP_CONFIG wholesale, so graft the test block on after
+       it loads but before checkout.js runs: same ordering a real edit has */
+    await page2.route('**/assets/js/config.js', async (route) => {
+      const res = await route.fetch();
+      const body = await res.text();
+      await route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/javascript' },
+        body: body + '\nwindow.SP_CONFIG.checkout = window.__SP_TEST_CHECKOUT;\n',
+      });
+    });
+    await page2.goto(BASE, { waitUntil: 'networkidle' });
+    await page2.waitForTimeout(1400);
+
+    const on = await page2.evaluate(() => ({
+      state: window.SPCheckout,
+      solo: document.querySelector('[data-checkout="solo"]').getAttribute('href'),
+      soloRel: document.querySelector('[data-checkout="solo"]').getAttribute('rel'),
+      business: document.querySelector('[data-checkout="business"]').getAttribute('href'),
+      accountant: document.querySelector('[data-checkout="accountant"]').getAttribute('href'),
+      live: document.querySelectorAll('[data-checkout-live]').length,
+    }));
+    check('a configured URL becomes the button destination',
+      on.solo === 'https://pay.example.com/checkout/solo' &&
+      on.business === 'https://pay.example.com/checkout/business', JSON.stringify(on));
+    check('checkout links carry rel=noopener', on.soloRel === 'noopener', on.soloRel);
+    check('two live checkout buttons are marked as such', on.live === 2, on.live);
+    /* a malformed URL must be refused, not sent a buyer to */
+    check('a non-https value is refused and the markup href survives',
+      on.accountant === '#partner', on.accountant);
+
+    /* the reader is told what they will actually be charged in */
+    await page2.click('.plans-toggle button[data-cur="ron"]');
+    await page2.waitForTimeout(350);
+    const ron = await page2.evaluate(() => {
+      const n = document.getElementById('checkout-cur-note');
+      return { hidden: n.hidden, text: n.textContent };
+    });
+    check('picking a currency the gateway cannot bill shows the billing note',
+      ron.hidden === false && /EUR/.test(ron.text), JSON.stringify(ron));
+
+    await page2.click('.plans-toggle button[data-cur="eur"]');
+    await page2.waitForTimeout(350);
+    const eur = await page2.evaluate(() => document.getElementById('checkout-cur-note').hidden);
+    check('and hides it again for a currency it can bill', eur === true);
+
+    /* the note is copy, so it has to follow the language switcher */
+    await page2.click('.plans-toggle button[data-cur="ron"]');
+    await page2.waitForTimeout(300);
+    const plText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
+    await showNav(page2);
+    await page2.click('.langs button[data-lang="de"]');
+    await page2.waitForTimeout(600);
+    const deText = await page2.evaluate(() => document.getElementById('checkout-cur-note').textContent);
+    check('the billing note is translated with the rest of the page',
+      deText !== plText && /EUR/.test(deText) && deText.length > 10, `${plText} -> ${deText}`);
+
+    await ctx2.close();
+  }
+
+  /* =========================================================
      8. NAVIGATION AND THE TWO WORLDS
      ========================================================= */
   group('8. Navigation');
@@ -587,6 +960,9 @@ try {
     await page.waitForTimeout(1600);
 
     for (const [sel, id] of [['#mandates', 'mandates'], ['#how', 'how'], ['#demo', 'demo'], ['#pricing', 'pricing'], ['#faq', 'faq']]) {
+      /* each jump scrolls down, which hides the header; a reader scrolls up to
+         reach for the next link, so the test does too */
+      await showNav(page);
       await page.click(`.nav-links a[href="${sel}"]`);
       await page.waitForTimeout(900);
       const clear = await page.evaluate((i) => {
@@ -659,12 +1035,42 @@ try {
     check('the header never goes illegible while it changes worlds',
       flip.ratio >= 4.5, JSON.stringify(flip));
 
+    /* Hide on scroll down, return on scroll up. This was designed but did not
+       work: the intro tween left an inline transform on .nav, and an inline
+       transform outranks the .nav.hide class, so the header never moved. */
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+    const navAtTop = await page.evaluate(() => ({
+      hidden: document.querySelector('.nav').classList.contains('hide'),
+      inlineTransform: document.querySelector('.nav').style.transform || '',
+    }));
+    check('the header is visible at the top of the page', navAtTop.hidden === false);
+    check('and carries no inline transform that would outrank its own hide rule',
+      navAtTop.inlineTransform === '', navAtTop.inlineTransform);
+
+    await page.evaluate(() => window.scrollTo({ top: 1400, behavior: 'instant' }));
+    await page.waitForTimeout(200);
+    await page.evaluate(() => window.scrollTo({ top: 2200, behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    const navDown = await page.evaluate(() => {
+      const n = document.querySelector('.nav');
+      return { hidden: n.classList.contains('hide'), top: Math.round(n.getBoundingClientRect().bottom) };
+    });
+    check('scrolling down hides the header', navDown.hidden === true && navDown.top <= 2,
+      JSON.stringify(navDown));
+
+    await page.evaluate(() => window.scrollBy({ top: -300, behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    const navUp = await page.evaluate(() => {
+      const n = document.querySelector('.nav');
+      return { hidden: n.classList.contains('hide'), bottom: Math.round(n.getBoundingClientRect().bottom) };
+    });
+    check('scrolling back up returns it', navUp.hidden === false && navUp.bottom > 20,
+      JSON.stringify(navUp));
+
     await ctx.close();
   }
 
-  /* =========================================================
-     9. MOBILE MENU
-     ========================================================= */
   group('9. Mobile menu');
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -677,8 +1083,22 @@ try {
     await page.waitForTimeout(300);
     check('the burger opens the menu', await page.isVisible('#menu'));
     check('the burger reports its state', (await page.getAttribute('#burger', 'aria-expanded')) === 'true');
-    check('the page behind the menu is scroll locked',
-      (await page.evaluate(() => document.body.style.overflow)) === 'hidden');
+    /* The old assertion read document.body.style.overflow, which only proved a
+       property had been assigned. It had been assigned for months and did
+       nothing: overflow propagates from body to the viewport only while the
+       root's own overflow is visible, and this root sets overflow-x: clip. So
+       try to scroll and see whether the page moves. */
+    const beforeLock = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, 500);          /* real input: scripted scrolling
+                                                is not what overflow blocks */
+    await page.waitForTimeout(250);
+    const menuLock = await page.evaluate((before) => ({
+      before, after: window.scrollY,
+      locked: document.documentElement.classList.contains('is-locked'),
+    }), beforeLock);
+    check('the page behind the menu really cannot scroll',
+      menuLock.after === menuLock.before && menuLock.locked, JSON.stringify(menuLock));
 
     /* The menu's CTA is an <a> inside .menu, so an unscoped `.menu a` rule
        outranks .btn-primary and repaints the button as a nav link: link
@@ -703,17 +1123,45 @@ try {
     const menuContrast = await contrastIssues(page, '#menu');
     check('everything in the open menu clears WCAG AA contrast',
       menuContrast.length === 0, menuContrast.join('\n'));
+    /* The overlay used to paint over the burger, so the control that opened
+       the menu could not close it. A phone has no Escape key, which made the
+       open menu a dead end for anyone who changed their mind. */
+    const reach = await page.evaluate(() => {
+      const b = document.querySelector('#burger');
+      const r = b.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { hit: at === b || b.contains(at), on: at ? at.tagName + '.' + (at.className || '').toString().split(' ')[0] : null };
+    });
+    check('the burger stays reachable while the menu is open', reach.hit, JSON.stringify(reach));
+    await page.click('#burger');
+    await page.waitForTimeout(350);
+    check('tapping it again closes the menu', await page.isHidden('#menu'));
+    check('and it reports the change', (await page.getAttribute('#burger', 'aria-expanded')) === 'false');
+
+    await page.click('#burger');
+    await page.waitForTimeout(300);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(250);
     check('Escape closes the menu', await page.isHidden('#menu'));
-    check('the scroll lock is released', (await page.evaluate(() => document.body.style.overflow)) === '');
+    const beforeRelease = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, 400);
+    await page.waitForTimeout(250);
+    const released = await page.evaluate((before) => ({
+      moved: window.scrollY !== before,
+      locked: document.documentElement.classList.contains('is-locked'),
+    }), beforeRelease);
+    check('and scrolling works again once it closes', released.moved && !released.locked,
+      JSON.stringify(released));
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
 
     await page.click('#burger');
     await page.waitForTimeout(250);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(400);
     check('growing past the breakpoint closes the menu', await page.isHidden('#menu'));
-    check('and releases the scroll lock', (await page.evaluate(() => document.body.style.overflow)) === '');
+    check('and releases the scroll lock',
+      (await page.evaluate(() => !document.documentElement.classList.contains('is-locked'))));
 
     await ctx.close();
   }
@@ -820,6 +1268,242 @@ try {
   }
 
   /* =========================================================
+     10b. THE FOLD (the guarantee certificate)
+     ========================================================= */
+  group('10b. The fold');
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    watch(page, 'fold', noise);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1800);
+
+    const geo = await page.evaluate(() => {
+      const s = document.querySelector('#fold');
+      const st = ScrollTrigger.getAll().find((x) => x.trigger === s);
+      return {
+        vh: window.innerHeight,
+        sectionH: s.offsetHeight,
+        docH: document.body.scrollHeight,
+        start: st ? st.start : null,
+        end: st ? st.end : null,
+      };
+    });
+
+    /* A section that costs the reader more than about a screen and a third is
+       a section they have to sit through. This one used to be 1.6 viewports
+       and 11% of the whole page, for a choreography that could be told in
+       less. The budget is the point of the test. */
+    check('the fold costs no more than 1.4 viewports of scrolling',
+      geo.sectionH / geo.vh <= 1.4, (geo.sectionH / geo.vh).toFixed(2) + ' viewports');
+    check('the fold is under a tenth of the page height',
+      geo.sectionH / geo.docH <= 0.10, ((geo.sectionH / geo.docH) * 100).toFixed(1) + '%');
+    check('the fold builds a scroll trigger', geo.start !== null && geo.end > geo.start);
+
+    /* The real complaint was not the length, it was the dead air: half the old
+       runway moved one rectangle while everything else sat at opacity 0, and
+       the last quarter drew a signature over a composition already finished.
+       Sample the whole range and require that every step changes something. */
+    const SAMPLES = 24;
+    const frames = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }),
+        geo.start + ((geo.end - geo.start) * i) / SAMPLES);
+      await page.waitForTimeout(120);
+      frames.push(await page.evaluate(() => {
+        const q = (sel) => document.querySelector(sel);
+        const cs = (sel) => getComputedStyle(q(sel));
+        const r2 = (v) => Math.round(v * 100) / 100;
+        return {
+          sheet: cs('#fold-sheet').transform,
+          guilloche: r2(+cs('#fold-sheet > .guilloche').opacity),
+          head: cs('#fold .fold-head').clipPath,
+          h2: r2(+cs('#fold h2').opacity),
+          lede: r2(+cs('#fold .lede').opacity),
+          trust: [...document.querySelectorAll('#fold .trust-list li')]
+            .map((e) => r2(+getComputedStyle(e).opacity)).join(','),
+          card: r2(+cs('#lockcard').opacity) + '/' + cs('#lockcard').transform,
+          seal: r2(+cs('#fold .lockcard-seal').opacity),
+          ring: r2(+cs('#fold .lockcard-ring').opacity),
+          note: r2(+cs('#fold .locknote').opacity),
+          foot: cs('#fold .fold-foot').clipPath,
+          sig: Math.round(parseFloat(cs('#fold .fold-scribble path').strokeDashoffset) || 0),
+        };
+      }));
+    }
+
+    /* Between each pair of samples, which channels actually moved. */
+    const CHANNELS = Object.keys(frames[0]);
+    const moved = [];
+    for (let i = 1; i < frames.length; i++) {
+      moved.push(CHANNELS.filter((k) => frames[i][k] !== frames[i - 1][k]));
+    }
+    const stepPx = (geo.end - geo.start) / SAMPLES;
+    const longestRun = (pred) => {
+      let run = 0, worst = 0, at = 0;
+      for (let i = 0; i < moved.length; i++) {
+        if (pred(moved[i])) { run += 1; if (run > worst) { worst = run; at = Math.round(((i + 1 - run) / SAMPLES) * 100); } }
+        else run = 0;
+      }
+      return { worst, at, px: Math.round(worst * stepPx) };
+    };
+
+    const frozen = longestRun((m) => m.length === 0);
+    check('no stretch of the fold scrolls with nothing changing at all',
+      frozen.px <= Math.round(stepPx) + 1,
+      `${frozen.px}px frozen from ${frozen.at}%`);
+
+    /* This is the assertion that encodes the actual complaint. The section used
+       to spend its first 720px translating one rectangle with every other
+       element still at opacity 0, then its last 330px drawing a signature over
+       a finished composition. Both stretches technically "changed something"
+       every frame, so a freeze test would have passed them happily. What makes
+       a scroll section feel padded is a long run where only ONE thing is
+       moving. Budget that directly. */
+    const soloPx = Math.round(geo.vh * 0.42);
+    const solo = longestRun((m) => m.length === 1);
+    check('the fold never spends long with only one element animating',
+      solo.px <= soloPx,
+      `${solo.px}px from ${solo.at}% with only [${moved[Math.max(0, Math.round((solo.at / 100) * SAMPLES))] || ''}] moving, budget ${soloPx}px`);
+
+    /* the payoff has to be reached, and scrubbing back has to undo it */
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.end);
+    await page.waitForTimeout(700);
+    const landed = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const o = (sel) => r2(+getComputedStyle(document.querySelector(sel)).opacity);
+      return {
+        seal: o('#fold .lockcard-seal'),
+        card: o('#lockcard'),
+        h2: o('#fold h2'),
+        trust: [...document.querySelectorAll('#fold .trust-list li')]
+          .map((e) => r2(+getComputedStyle(e).opacity)),
+        sig: Math.round(parseFloat(getComputedStyle(document.querySelector('#fold .fold-scribble path')).strokeDashoffset) || 0),
+        headClip: getComputedStyle(document.querySelector('#fold .fold-head')).clipPath,
+        sheet: getComputedStyle(document.querySelector('#fold-sheet')).transform,
+      };
+    });
+    check('the certificate finishes fully composed',
+      landed.seal === 1 && landed.card === 1 && landed.h2 === 1 &&
+      landed.trust.every((v) => v === 1) && landed.sig <= 2,
+      JSON.stringify(landed));
+    check('the sheet ends flat and full bleed, so the paper world continues seamlessly',
+      landed.sheet === 'none' || /matrix\(1, 0, 0, 1, 0, 0\)/.test(landed.sheet), landed.sheet);
+    /* the computed value serialises as inset(0px 0% 0px 0px), so read the
+       numbers rather than matching one spelling of "nothing is clipped" */
+    const clipInsets = (landed.headClip.match(/-?[\d.]+/g) || ['0']).map(Number);
+    check('the header band finishes unclipped',
+      landed.headClip === 'none' || clipInsets.every((v) => v <= 0.01),
+      landed.headClip);
+
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.start + (geo.end - geo.start) * 0.08);
+    await page.waitForTimeout(800);
+    const rewound = await page.evaluate(() =>
+      Math.round(+getComputedStyle(document.querySelector('#lockcard')).opacity * 100) / 100);
+    check('scrubbing back out of the fold rewinds it', rewound < 0.15, rewound);
+
+    /* The choreography now lives inside a matchMedia range, so it is built and
+       torn down as the window crosses 861px wide or 701px tall. A teardown
+       that does not fully restore state would leave the guarantee section
+       half-hidden with nothing left to reveal it, and the only way to see that
+       is to cross the boundary in both directions and look. */
+    await page.setViewportSize({ width: 700, height: 900 });
+    await page.waitForTimeout(700);
+    const small = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const o = (sel) => r2(+getComputedStyle(document.querySelector(sel)).opacity);
+      return {
+        sheetPosition: getComputedStyle(document.querySelector('#fold-sheet')).position,
+        h2: o('#fold h2'),
+        card: o('#lockcard'),
+        seal: o('#fold .lockcard-seal'),
+        trust: [...document.querySelectorAll('#fold .trust-list li')].map((e) => r2(+getComputedStyle(e).opacity)),
+        headClip: getComputedStyle(document.querySelector('#fold .fold-head')).clipPath,
+      };
+    });
+    check('below the breakpoint the fold is an ordinary section',
+      small.sheetPosition === 'static', small.sheetPosition);
+    check('and every part of it is visible, with no animation left to reveal it',
+      small.h2 === 1 && small.card === 1 && small.seal === 1 &&
+      small.trust.every((v) => v === 1) &&
+      (small.headClip === 'none' || (small.headClip.match(/-?[\d.]+/g) || ['0']).map(Number).every((v) => v <= 0.01)),
+      JSON.stringify(small));
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(900);
+    const backGeo = await page.evaluate(() => {
+      const s = document.querySelector('#fold');
+      const st = ScrollTrigger.getAll().find((x) => x.trigger === s);
+      return st ? {
+        start: Math.round(st.start), end: Math.round(st.end),
+        top: s.offsetTop, height: s.offsetHeight, vh: window.innerHeight,
+      } : null;
+    });
+    /* This trigger starts at 'top bottom', so progress 0 is one viewport
+       before the section's top, and the span is the section's own height.
+       (The rig starts at 'top top' and is asserted differently; copying its
+       rule here is how this check first failed on correct code.) */
+    check('coming back above the breakpoint rebuilds the trigger, measured correctly',
+      !!backGeo &&
+      Math.abs(backGeo.start - (backGeo.top - backGeo.vh)) < 4 &&
+      Math.abs((backGeo.end - backGeo.start) - backGeo.height) < 4,
+      JSON.stringify(backGeo));
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), backGeo.end);
+    await page.waitForTimeout(800);
+    const rebuilt = await page.evaluate(() => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      return {
+        seal: r2(+getComputedStyle(document.querySelector('#fold .lockcard-seal')).opacity),
+        card: r2(+getComputedStyle(document.querySelector('#lockcard')).opacity),
+      };
+    });
+    check('and the choreography still reaches its payoff after the round trip',
+      rebuilt.seal === 1 && rebuilt.card === 1, JSON.stringify(rebuilt));
+
+    /* The guarantee section is a document laid over the page, but it is still
+       part of the same page, and its column has to line up with every other
+       one. It did not: adding the gutters back into its max-width made its
+       content column 96px wider than .wrap's, so the headline and the card
+       sat outside the grid the rest of the site is aligned to. */
+    const columns = await page.evaluate(() => {
+      const inner = (sel) => {
+        const e = document.querySelector(sel);
+        if (!e) return null;
+        const cs = getComputedStyle(e);
+        return Math.round(e.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      };
+      return {
+        page: inner('#pricing .wrap'),
+        content: inner('#fold .fold-content'),
+        head: inner('#fold .fold-head'),
+        foot: inner('#fold .fold-foot'),
+      };
+    });
+    check('the fold shares the page content column',
+      columns.page > 0 &&
+      Math.abs(columns.content - columns.page) <= 1 &&
+      Math.abs(columns.head - columns.page) <= 1 &&
+      Math.abs(columns.foot - columns.page) <= 1,
+      JSON.stringify(columns));
+
+    /* the document furniture used to be pinned to top:22px of the sheet, which
+       put it behind the fixed header where no reader ever saw it */
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), geo.end);
+    await page.waitForTimeout(600);
+    const furniture = await page.evaluate(() => {
+      const navH = document.querySelector('.nav').getBoundingClientRect().height;
+      return ['#fold .fold-caption', '#fold .fold-docno'].map((sel) => {
+        const b = document.querySelector(sel).getBoundingClientRect();
+        return { sel, top: Math.round(b.top), navH: Math.round(navH), clear: b.top >= navH };
+      });
+    });
+    check('the document furniture sits clear of the fixed header',
+      furniture.every((f) => f.clear), JSON.stringify(furniture));
+
+    await ctx.close();
+  }
+
+  /* =========================================================
      11. RESPONSIVE SWEEP
      ========================================================= */
   group('11. Responsive sweep');
@@ -845,6 +1529,18 @@ try {
               const cs = getComputedStyle(e);
               if (cs.position === 'fixed' || cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowX === 'clip') return;
               if (e.closest('.marquee-wrap, .demo-bar, .xmlview, .rig-stage, .grain, .hero')) return;
+              /* An ancestor that clips its overflow is a scroll container: a
+                 child sticking out of it cannot widen the document, so it is
+                 not the overflow this check is looking for. Without this the
+                 stamp descending inside the price card reads as a page-wide
+                 overflow on a phone, which it never was. */
+              let clipped = false;
+              for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) {
+                const acs = getComputedStyle(a);
+                if (acs.overflow === 'hidden' || acs.overflow === 'clip' ||
+                    acs.overflowX === 'hidden' || acs.overflowX === 'clip') { clipped = true; break; }
+              }
+              if (clipped) return;
               wide.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]}`);
             }
           });
@@ -882,6 +1578,68 @@ try {
         narrow.length === 0, narrow.slice(0, 10).join('\n'));
       await ctx.close();
     }
+  }
+
+  /* =========================================================
+     11c. SCROLL TRAPS
+     ========================================================= */
+  group('11c. Scroll traps');
+  {
+    /* A big element with `overflow: hidden` is still a scroll container. The
+       user cannot scroll it, but the wheel is delivered to it anyway, and once
+       its content is taller than its box the page stops moving. Add
+       `overscroll-behavior: contain` and the wheel cannot even chain back out.
+       That is what happened to the guarantee sheet: 1011px of content in an
+       844px box on a standard phone, and the page would move neither up nor
+       down at that section. `overflow: clip` clips identically and is not a
+       scroll container, which is why it is the right tool for a decorative
+       rounded corner.
+
+       So: no element big enough for a pointer to be over may be a scroll
+       container with content it cannot show. Checked at the sizes where the
+       composition is tightest. */
+    const trapReports = [];
+    for (const [w, h] of [[1440, 900], [1440, 700], [1280, 620], [390, 844], [390, 640]]) {
+      const ctx = await browser.newContext({
+        viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500,
+      });
+      const page = await ctx.newPage();
+      watch(page, `traps/${w}x${h}`, noise);
+      await page.goto(BASE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1500);
+      await page.evaluate(async () => {
+        const H = document.body.scrollHeight;
+        for (let i = 0; i <= 12; i++) {
+          window.scrollTo({ top: (H * i) / 12, behavior: 'instant' });
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+      await page.waitForTimeout(400);
+      const traps = await page.evaluate(() => {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const out = [];
+        document.querySelectorAll('body *').forEach((e) => {
+          const cs = getComputedStyle(e);
+          const container = ['auto', 'scroll', 'hidden'].includes(cs.overflowY) ||
+            ['auto', 'scroll', 'hidden'].includes(cs.overflowX);
+          if (!container) return;
+          const r = e.getBoundingClientRect();
+          if (r.width < vw * 0.55 || r.height < vh * 0.5) return;
+          if (e.scrollHeight <= e.clientHeight + 2) return;   /* nothing to trap */
+          if (e.closest('[data-scrollable]')) return;         /* opted in on purpose */
+          out.push(`${e.tagName}.${(e.className || '').toString().split(' ')[0]} ` +
+            `${Math.round(r.width)}x${Math.round(r.height)} ` +
+            `content ${e.scrollHeight} > ${e.clientHeight} overflow-y=${cs.overflowY} ` +
+            `overscroll=${cs.overscrollBehaviorY}`);
+        });
+        return out;
+      });
+      for (const t of traps) trapReports.push(`${w}x${h}: ${t}`);
+      await ctx.close();
+    }
+    check('no viewport-sized element can swallow the page scroll',
+      trapReports.length === 0, trapReports.join('\n'));
   }
 
   /* =========================================================
@@ -1064,6 +1822,47 @@ try {
     check('the header stays legible through the world flip, from frame zero',
       flipFlash.length === 0, flipFlash.join('\n'));
 
+    /* Hover is a state, and it was never measured. Three separate rules
+       repainted text on hover into something unreadable: the document world's
+       link hover repainted the primary CTA's label onto its own accent fill,
+       and the currency chip's hover painted its label the same colour as its
+       background, erasing it. Hover every control and measure what happens. */
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+    const hoverBad = [];
+    const hoverables = await page.$$('a[href], button:not([disabled])');
+    for (const h of hoverables.slice(0, 70)) {
+      const visible = await h.evaluate((e) => e.offsetParent !== null && e.getBoundingClientRect().width > 0);
+      if (!visible) continue;
+      try { await h.hover({ timeout: 1200 }); } catch (e) { continue; }
+      await page.waitForTimeout(45);
+      const bad = await h.evaluate((el) => {
+        const parse = (c) => { const m = (c || '').match(/[\d.]+/g); return m ? { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] } : null; };
+        const lumOf = ({ r, g, b }) => { const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+        const bgOf = (e0) => {
+          const st = []; let e = e0;
+          while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { st.push(c); if (c.a === 1) break; } e = e.parentElement; }
+          let o = { r: 8, g: 11, b: 9 };
+          for (let i = st.length - 1; i >= 0; i--) { const c = st[i]; o = { r: c.a * c.r + (1 - c.a) * o.r, g: c.a * c.g + (1 - c.a) * o.g, b: c.a * c.b + (1 - c.a) * o.b }; }
+          return o;
+        };
+        const txt = el.textContent.trim();
+        if (txt.length < 2) return null;
+        const cs = getComputedStyle(el);
+        const size = parseFloat(cs.fontSize);
+        const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+        const a = lumOf(parse(cs.color)), b = lumOf(bgOf(el));
+        const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        const need = large ? 3 : 4.5;
+        return ratio < need
+          ? `${el.tagName}.${(el.className || '').toString().split(' ')[0]} ${ratio.toFixed(2)} < ${need} "${txt.slice(0, 26)}"`
+          : null;
+      });
+      if (bad) hoverBad.push(bad);
+    }
+    check('every control stays legible while hovered',
+      hoverBad.length === 0, [...new Set(hoverBad)].join('\n'));
+
     /* Overlays are their own worlds and the page-level sweep never sees them:
        the gate is `hidden` until it is needed, so nothing inside it was ever
        measured. Its stamp sat at 3.9:1. */
@@ -1174,6 +1973,47 @@ try {
     await ctx.close();
   }
   {
+    /* JavaScript genuinely off. The whole html.no-js CSS branch exists for
+       this and nothing was testing it: the rig's four captions are
+       visibility:hidden so they are not all readable at once, only
+       `.rig-beat.on` restores that, and `.on` is a class only JavaScript ever
+       adds. The no-JS override set opacity and transform and not visibility,
+       so with scripting disabled that whole section rendered its devices and
+       not one word explaining them. */
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto(BASE, { waitUntil: 'load' });
+    await page.waitForTimeout(900);
+    const nojs = await page.evaluate(() => {
+      const readable = (e) => {
+        const cs = getComputedStyle(e);
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.5 &&
+          e.getBoundingClientRect().height > 0;
+      };
+      const some = (sel) => [...document.querySelectorAll(sel)].some(readable);
+      const one = (sel) => { const e = document.querySelector(sel); return !!e && readable(e); };
+      return {
+        heroH1: one('#hero-h1'),
+        heroSub: one('.hero-sub'),
+        rigCaption: some('.rig-beat'),
+        rigDevice: one('.laptop'),
+        foldHeadline: one('#fold h2'),
+        foldCard: one('#lockcard'),
+        guarantees: [...document.querySelectorAll('#fold .trust-list li')].filter(readable).length,
+        pricing: [...document.querySelectorAll('.plan')].filter(readable).length,
+        faq: [...document.querySelectorAll('.faq-item')].filter(readable).length,
+      };
+    });
+    check('with JavaScript off the hero still states the offer', nojs.heroH1 && nojs.heroSub, JSON.stringify(nojs));
+    check('with JavaScript off the rig explains itself in words',
+      nojs.rigCaption && nojs.rigDevice, JSON.stringify(nojs));
+    check('with JavaScript off the guarantee section is complete',
+      nojs.foldHeadline && nojs.foldCard && nojs.guarantees === 4, JSON.stringify(nojs));
+    check('with JavaScript off pricing and the FAQ are readable',
+      nojs.pricing === 4 && nojs.faq >= 8, JSON.stringify(nojs));
+    await ctx.close();
+  }
+  {
     /* private-mode storage: every preference write must be survivable */
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
@@ -1185,6 +2025,7 @@ try {
     });
     await page.goto(BASE, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1800);
+    await showNav(page);
     await page.click('.langs button[data-lang="en"]');
     await page.waitForTimeout(300);
     await page.click('#btn-sample');

@@ -34,7 +34,12 @@ img, svg, video, canvas { display: block; max-width: 100%; }
 input, button, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
 a { color: var(--acc); text-decoration: none; }
-a:hover { color: var(--acc-bright); }
+/* Not buttons. A .btn is an <a>, and `a:hover` at (0,1,1) out-specifies
+   `.btn-primary { color: var(--acc-ink) }` at (0,1,0), so hovering the site's
+   primary call to action painted its label the accent colour on top of the
+   accent fill: 1.02:1, an invisible button label, on the most important
+   control on the page. */
+a:not(.btn):hover { color: var(--acc-bright); }
 p a, li a { text-decoration: underline; text-underline-offset: 3px; }
 
 h1, h2, h3 {
@@ -76,7 +81,10 @@ pre, code, kbd, samp {
   outline-offset: 3px;
   border-radius: 2px;
 }
-.paper-world :focus-visible, .fold :focus-visible { outline-color: var(--p-acc); }
+/* #fold, not .fold: there is no such class, so this half of the selector
+   matched nothing. The guarantee sheet is light paper and sits outside
+   .paper-world, so anything focusable inside it needs the paper accent. */
+.paper-world :focus-visible, #fold :focus-visible { outline-color: var(--p-acc); }
 
 /* skip link */
 .skip {
@@ -150,6 +158,16 @@ pre, code, kbd, samp {
   transition-delay: calc(var(--rv, 0) * 70ms);
 }
 [data-reveal].in { opacity: 1; transform: none; }
+
+/* Locking the page behind a modal.
+
+   `body { overflow: hidden }` is the usual trick and it does nothing here:
+   overflow only propagates from body to the viewport while the root element's
+   own overflow is visible, and this root sets `overflow-x: clip` to contain
+   the wide sections. So the demo gate and the mobile menu were both setting a
+   property that could not take effect, and the page kept scrolling behind
+   them. The root is the scroll container, so the root is what gets locked. */
+html.is-locked, html.is-locked body { overflow: hidden; }
 
 /* scrollbar (webkit, subtle) */
 ::-webkit-scrollbar { width: 10px; }

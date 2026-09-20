@@ -249,7 +249,10 @@
 }
 
 /* ================= TICKER BAND ================= */
-.tickerband { padding-block: 34px; border-top: 1px solid var(--line); position: relative; z-index: 2; }
+/* no border-top: .marquee-wrap directly above already draws a border-bottom
+   in the same colour, and the two stacked into a 2px rule where the system
+   uses 1px everywhere else */
+.tickerband { padding-block: 34px; position: relative; z-index: 2; }
 
 /* ================= MANDATE WALL ================= */
 .wall-wrap { position: relative; }
@@ -277,7 +280,9 @@
   border-radius: 2px; background: var(--acc); opacity: 0;
   transition: opacity var(--d2) ease;
 }
-.wall-row:hover { border-color: var(--line-hi); background: var(--bg-2); transform: translateX(3px); }
+/* Same reasoning as .ticker: a mandate row is information, not a link, so it
+   highlights on hover without sliding as though it were about to open. */
+.wall-row:hover { border-color: var(--line-hi); background: var(--bg-2); }
 .wall-row:hover::before { opacity: 1; }
 .wall-row > span:not(.st) { font-size: 0.92rem; color: var(--fg); }
 .wall-row .w-country { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--fg-hi); }
@@ -369,7 +374,7 @@
   display: grid; grid-template-columns: var(--split, 50%) 1fr;
   border: 1px solid var(--line); border-radius: var(--r-panel);
   background: var(--bg-1);
-  overflow: hidden;
+  overflow: clip;   /* clip, not hidden: hidden would make this a scroll container the wheel can fall into */
   min-height: 340px;
 }
 .morph-pane {
@@ -421,8 +426,18 @@
   box-shadow: 0 6px 24px rgba(0,0,0,.45);
 }
 .morph-range {
-  position: absolute; inset: 0; z-index: 4;
-  width: 100%; height: 100%;
+  /* A band across the middle, not the whole panel.
+
+     `inset: 0` put an invisible input on top of everything in the split view,
+     so neither side's text could be selected or copied: the reader could see
+     the invoice and the XML side by side and not take a line out of either.
+     The band keeps the drag where the grip is, the divider itself stays
+     draggable along its full height, and the content underneath is content
+     again. */
+  position: absolute; z-index: 4;
+  left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 100%; height: 84px;
   opacity: 0; cursor: ew-resize; margin: 0;
   -webkit-appearance: none; appearance: none;
   background: transparent;

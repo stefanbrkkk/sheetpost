@@ -29,6 +29,18 @@
   transform: none;
 }
 .btn:disabled:hover, .btn[aria-disabled="true"]:hover { transform: none; border-color: var(--line-hi); }
+/* Fading the whole button dropped the primary action's label to 2.3:1 against
+   its own washed-out fill, and "Mapuj kolumny" is the demo's only way forward,
+   so the disabled state was the state a first-time visitor read first. Fade
+   the surface, keep the label. */
+.btn-primary:disabled, .btn-primary[aria-disabled="true"] {
+  opacity: 1;
+  filter: none;
+  background: var(--bg-3);
+  color: var(--fg);
+  border-color: var(--line-hi);
+}
+.btn-primary:disabled::after, .btn-primary[aria-disabled="true"]::after { content: none; }
 .btn-primary:disabled::after { content: none; }
 
 .btn-primary {
@@ -114,6 +126,12 @@
   .nav.scrolled { background: rgba(8, 11, 9, 0.97); }
 }
 .nav.hide { transform: translateY(-110%); }
+/* above the full screen menu, so its own toggle stays reachable */
+.nav.menu-open { z-index: calc(var(--z-menu) + 1); }
+.nav.menu-open.hide { transform: none; }
+.burger[aria-expanded="true"] { border-color: var(--acc); color: var(--acc); }
+.burger[aria-expanded="true"] .ico { transform: rotate(90deg); }
+.burger .ico { transition: transform var(--d2) var(--e-out); }
 
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
@@ -291,7 +309,9 @@ html.no-js .scroll-progress { display: none; }
 .ticker {
   transition: border-color var(--d2) ease, background var(--d2) ease, transform var(--d2) var(--e-out);
 }
-.ticker:hover { border-color: var(--line-hi); transform: translateY(-2px); }
+/* A ticker is a readout, not a control. Lifting it on hover promised a click
+   that does not exist; the border still responds so the surface feels alive. */
+.ticker:hover { border-color: var(--line-hi); }
 
 /* ---------- forms ---------- */
 .field { display: flex; flex-direction: column; gap: 7px; }

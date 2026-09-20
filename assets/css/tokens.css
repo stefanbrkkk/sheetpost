@@ -52,9 +52,13 @@
   --p-seal-deep: #0E5433;   /* seals and micro-type on paper: 7:1 on --p-bg */
 
   /* ---- type ---- */
-  --font-d: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
-  --font-b: 'Figtree', 'Segoe UI', sans-serif;
-  --font-m: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  /* The fallbacks have to exist on the device doing the falling back.
+     'Trebuchet MS' and 'Segoe UI' ship on Windows and essentially nowhere
+     else, so on Android, iOS and macOS the stack used to skip straight past
+     them to the generic default while the web font streamed in. */
+  --font-d: 'Bricolage Grotesque', 'Trebuchet MS', 'Helvetica Neue', Arial, sans-serif;
+  --font-b: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-m: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
   --fs-h1: clamp(2.4rem, 5.4vw, 4.6rem);
   --fs-h2: clamp(1.85rem, 3.6vw, 3rem);

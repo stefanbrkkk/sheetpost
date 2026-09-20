@@ -12,7 +12,10 @@
   background:
     linear-gradient(var(--bg-1), var(--bg-1)) padding-box,
     var(--line-grad) border-box;
-  overflow: hidden;
+  /* clip, not hidden: this panel is nearly viewport sized, and `hidden` would
+     make it a scroll container that the wheel can fall into the moment its
+     content grows past it. It clips a gradient border, nothing more. */
+  overflow: clip;
 }
 
 /* top bar: steps */
@@ -138,7 +141,9 @@
   border: 1px solid var(--ctl-line);
   transition: color var(--d1) ease, border-color var(--d1) ease, background var(--d1) ease;
 }
+.ptab:hover { color: var(--fg-hi); border-color: var(--line-hi); }
 .ptab[aria-selected="true"] { color: var(--acc); border-color: rgba(62,207,142,.4); background: var(--acc-dim); }
+.ptab[aria-selected="true"]:hover { color: var(--acc); }
 .xmlview {
   border: 1px solid var(--line); border-radius: var(--r-card);
   scrollbar-width: thin;

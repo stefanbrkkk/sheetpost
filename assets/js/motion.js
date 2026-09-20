@@ -387,48 +387,123 @@
       };
     });
 
-    /* --- the bridge: the document feeds up over the ink world ---
-       The runway is 160vh, so it has to deliver more than one static frame:
-       the sheet arrives, its furniture fades in, the guarantees land one by
-       one, the card settles and the signature draws itself. --- */
-    (function () {
-      var bridge = $('#fold');
-      var sheetEl = $('#fold-sheet');
-      if (!bridge || !sheetEl) return;
-      var trust = $$('#fold .trust-list li');
-      var card = $('#lockcard');
-      var seal = $('#fold .lockcard-seal');
-      var scribble = $('#fold .fold-scribble path');
-      var furniture = $$('#fold .fold-caption, #fold .fold-docno, #fold .fold-foot .mono');
+    /* --- the fold: a guarantee certificate is issued over the ink world ---
 
-      /* GSAP owns every hidden state: if this script fails, the sheet stays
-         visible and complete (no empty-void failure mode) */
-      gsap.set(sheetEl, { yPercent: 100 });
-      if (trust.length) gsap.set(trust, { opacity: 0, x: -14 });
-      if (card) gsap.set(card, { opacity: 0, y: 26, rotateZ: -2.5 });
-      if (seal) gsap.set(seal, { opacity: 0, scale: 1.5, rotate: 22 });
-      if (furniture.length) gsap.set(furniture, { opacity: 0 });
-      if (scribble) {
-        var len = scribble.getTotalLength();
-        gsap.set(scribble, { strokeDasharray: len, strokeDashoffset: len });
-      }
+       The old version spent half its 160vh runway translating one rectangle
+       while every other element sat at opacity 0, then spent the last quarter
+       drawing a signature with the composition already finished and frozen.
+       It read as a section that would not let you leave.
 
-      var tl = gsap.timeline({
-        defaults: { ease: 'none' },
-        scrollTrigger: {
-          trigger: bridge, start: 'top bottom', end: 'bottom bottom',
-          scrub: 0.5, invalidateOnRefresh: true
+       The runway is 132vh now, and it is scored so that every band of it does
+       visible work. The sheet arrives as a physical document (scaled, tilted,
+       corner-radiused, casting a shadow on the ink world) and flattens into
+       the page just as the stage pins. Everything after that is the document
+       writing itself: the header band prints, the argument lands line by line,
+       the guarantees check in, the card presses onto the paper, the seal
+       stamps, the signature runs. --- */
+    /* Only where the stage is actually pinned. Below 861px wide or 701px tall
+       the CSS turns this section back into an ordinary flowing one, because
+       the stacked composition cannot fit a phone screen. Running the
+       choreography against a static sheet would hide content that has nothing
+       to reveal it. */
+    mm.add('(min-width: 861px) and (min-height: 701px)', function () {
+        var bridge = $('#fold');
+        var sheetEl = $('#fold-sheet');
+        if (!bridge || !sheetEl) return;
+        var head = $('#fold .fold-head');
+        var foot = $('#fold .fold-foot');
+        var heading = $('#fold h2');
+        var lede = $('#fold .lede');
+        var trust = $$('#fold .trust-list li');
+        var icons = $$('#fold .trust-list .ico');
+        var card = $('#lockcard');
+        var sheen = $('#fold .lockcard-sheen');
+        var seal = $('#fold .lockcard-seal');
+        var ring = $('#fold .lockcard-ring');
+        var note = $('#fold .locknote');
+        var guilloche = $('#fold-sheet > .guilloche');
+        var scribble = $('#fold .fold-scribble path');
+
+        /* GSAP owns every hidden state: if this script never runs, the document
+           stays visible and complete rather than collapsing to an empty void */
+        gsap.set(sheetEl, { yPercent: 100, scale: 0.9, rotate: -1.1, borderRadius: 26 });
+        if (guilloche) gsap.set(guilloche, { opacity: 0 });
+        if (head) gsap.set(head, { clipPath: 'inset(0 100% 0 0)' });
+        if (foot) gsap.set(foot, { clipPath: 'inset(0 100% 0 0)' });
+        if (heading) gsap.set(heading, { opacity: 0, y: 22 });
+        if (lede) gsap.set(lede, { opacity: 0, y: 14 });
+        if (trust.length) gsap.set(trust, { opacity: 0, x: -16 });
+        if (icons.length) gsap.set(icons, { scale: 0.3, opacity: 0, transformOrigin: '50% 50%' });
+        if (card) gsap.set(card, { opacity: 0, y: 44, scale: 1.05, rotate: -3.4 });
+        if (sheen) gsap.set(sheen, { opacity: 0, xPercent: -120 });
+        if (seal) gsap.set(seal, { opacity: 0, scale: 2.4, rotate: 30 });
+        if (ring) gsap.set(ring, { opacity: 0, scale: 0.35 });
+        if (note) gsap.set(note, { opacity: 0 });
+        if (scribble) {
+          var len = scribble.getTotalLength();
+          gsap.set(scribble, { strokeDasharray: len, strokeDashoffset: len });
         }
-      });
-      tl.fromTo(sheetEl, { yPercent: 100 }, { yPercent: 0, duration: 5 }, 0)
-        .to('.bridge-backdrop', { autoAlpha: 0, scale: 0.96, transformOrigin: '50% 100%', duration: 5 }, 0)
-        .fromTo('.fold-content > div', { y: 18 }, { y: 0, stagger: 0.4, duration: 1.4, ease: 'power1.out' }, 2.2);
-      if (furniture.length) tl.to(furniture, { opacity: 1, duration: 0.9, stagger: 0.25 }, 3.4);
-      if (trust.length) tl.to(trust, { opacity: 1, x: 0, duration: 0.7, stagger: 0.35, ease: 'power2.out' }, 3.8);
-      if (card) tl.to(card, { opacity: 1, y: 0, rotateZ: 0, duration: 1.4, ease: 'power3.out' }, 3.6);
-      if (seal) tl.to(seal, { opacity: 1, scale: 1, rotate: 8, duration: 0.5, ease: 'back.out(2.2)' }, 5.4);
-      if (scribble) tl.to(scribble, { strokeDashoffset: 0, duration: 1.4, ease: 'power1.inOut' }, 5.6);
-    })();
+
+        /* Positions are timeline units out of 10, and 10 maps to the whole 132vh.
+           The stage pins at 100/132 = 7.58, so the arrival is done before then
+           and the payoff beats sit inside the pinned stretch. */
+        var tl = gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            trigger: bridge, start: 'top bottom', end: 'bottom bottom',
+            scrub: 0.5, invalidateOnRefresh: true
+          }
+        });
+
+        /* 0.0 - 5.0  the certificate is laid onto the ink world */
+        tl.to(sheetEl, { yPercent: 0, duration: 5, ease: 'power1.out' }, 0)
+          .to(sheetEl, { scale: 1, rotate: 0, borderRadius: 0, duration: 2.2, ease: 'power2.inOut' }, 3.2)
+          .to('.bridge-backdrop', { autoAlpha: 0, scale: 0.94, transformOrigin: '50% 100%', duration: 4.4 }, 0);
+        /* the security pattern prints itself onto the paper as it arrives */
+        if (guilloche) tl.to(guilloche, { opacity: 0.35, duration: 2.4 }, 2.2);
+
+        /* 3.4 - 6.2  document furniture: the header band wipes in */
+        if (head) tl.to(head, { clipPath: 'inset(0 0% 0 0)', duration: 1.6, ease: 'power2.out' }, 3.4);
+
+        /* 4.2 - 6.8  the argument */
+        if (heading) tl.to(heading, { opacity: 1, y: 0, duration: 1.5, ease: 'power2.out' }, 4.2);
+        if (lede) tl.to(lede, { opacity: 1, y: 0, duration: 1.4, ease: 'power2.out' }, 4.9);
+
+        /* 5.5 - 8.0  the guarantees check in, each with its mark */
+        if (trust.length) tl.to(trust, { opacity: 1, x: 0, duration: 0.9, stagger: 0.45, ease: 'power2.out' }, 5.5);
+        if (icons.length) tl.to(icons, { opacity: 1, scale: 1, duration: 0.5, stagger: 0.45, ease: 'back.out(2.6)' }, 5.75);
+
+        /* 6.0 - 8.4  the card is pressed onto the paper, and catches the light */
+        if (card) {
+          tl.to(card, { opacity: 1, duration: 0.7, ease: 'power1.out' }, 6.0)
+            .to(card, { y: 0, scale: 1, rotate: 0, duration: 1.8, ease: 'power3.out' }, 6.0);
+        }
+        if (sheen) {
+          tl.to(sheen, { opacity: 1, duration: 0.3 }, 7.0)
+            .to(sheen, { xPercent: 120, duration: 1.4, ease: 'power1.inOut' }, 7.0)
+            .to(sheen, { opacity: 0, duration: 0.3 }, 8.1);
+        }
+        if (note) tl.to(note, { opacity: 1, duration: 0.8 }, 7.4);
+
+        /* 8.0 - 9.0  the seal hits, and throws a ring */
+        if (seal) tl.to(seal, { opacity: 1, scale: 1, rotate: 8, duration: 0.7, ease: 'back.out(1.9)' }, 8.0);
+        if (ring) {
+          tl.to(ring, { opacity: 0.55, duration: 0.15 }, 8.05)
+            .to(ring, { scale: 1.85, opacity: 0, duration: 0.9, ease: 'power2.out' }, 8.2);
+        }
+
+        /* 8.4 - 10.0  it is signed and filed */
+        if (scribble) tl.to(scribble, { strokeDashoffset: 0, duration: 1.3, ease: 'power1.inOut' }, 8.4);
+        if (foot) tl.to(foot, { clipPath: 'inset(0 0% 0 0)', duration: 1.4, ease: 'power2.out' }, 8.6);
+      return function () {
+        /* leaving the pinned range hands the document back to the page */
+        gsap.set([sheetEl, head, foot, heading, lede, card, sheen, seal, ring, note, guilloche]
+          .filter(Boolean), { clearProps: 'all' });
+        if (trust.length) gsap.set(trust, { clearProps: 'all' });
+        if (icons.length) gsap.set(icons, { clearProps: 'all' });
+        if (scribble) gsap.set(scribble, { clearProps: 'strokeDasharray,strokeDashoffset' });
+      };
+    });
 
     /* --- lockcard tilt + sheen (fine pointers only) --- */
     mm.add('(pointer: fine)', function () {
@@ -626,8 +701,24 @@
     if (reduced || !hasGsap) return;
 
     var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.from('.nav', { yPercent: -100, duration: 0.55 }, 0)
-      .from('#nav .brand, #nav .nav-links a, #nav .nav-right > *', { opacity: 0, y: -8, stagger: 0.04, duration: 0.4 }, 0.1);
+    /* fromTo, not from, and clearProps after.
+
+       `from` infers the end value by reading the element's current style, and
+       then bakes whatever it inferred into an inline style that outlives the
+       tween. The header's CTA was ending at opacity 0 on every desktop load
+       because of it: the primary call to action, invisible, with the tween's
+       own start values frozen into the element. Under CPU throttling it froze
+       at 0.0533 and 0.0238 on successive runs, which is the signature of an
+       inferred end value read off an element that was already moving.
+
+       Declaring both ends removes the inference, and clearProps removes the
+       inline style once the tween is done, so nothing survives to be read
+       wrongly later. Every hero tween in this timeline already did this; the
+       header was the one that did not. */
+    tl.fromTo('.nav', { yPercent: -100 }, { yPercent: 0, duration: 0.55, clearProps: 'transform' }, 0)
+      .fromTo('#nav .brand, #nav .nav-links a, #nav .nav-right > *',
+        { opacity: 0, y: -8 },
+        { opacity: 1, y: 0, stagger: 0.04, duration: 0.4, clearProps: 'opacity,transform' }, 0.1);
 
     var lines = $$('#hero-h1 .hl-i');
     if (lines.length) {

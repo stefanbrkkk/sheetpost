@@ -55,8 +55,8 @@ repository root as-is.
 
 ```bash
 npm run lint         # eslint over assets/js (vendor excluded)
-npm run check        # static gates: CSP, i18n parity, copy, links, hygiene
-npm run e2e          # 225 browser assertions, starts its own server
+npm run check        # 57 static gates: CSP, i18n parity, SEO, copy, links, hygiene
+npm run e2e          # 261 browser assertions, starts its own server
 npm test             # all three
 npm run test:launch  # the same, with launch blockers promoted to failures
 ```
@@ -76,6 +76,29 @@ maps to a way this site has actually broken. Some worth knowing about:
   `.from({opacity: 0})` captured the CSS reveal state as its end value.
 - **No console noise**: the sweep loads all five locales at two viewports and
   fails on any error, warning or failed request.
+- **The hero is never erased**: its opacity is sampled every frame from
+  navigation. It used to paint, go transparent when `no-js` came off, and fade
+  back in around a second later, which is the LCP element disappearing.
+- **Scroll cost of the fold**: `#fold` has a viewport budget, a page-share
+  budget, and a limit on how far it may scroll with only one thing animating.
+  That last one is the interesting one. A freeze test passes a section that
+  translates a rectangle for 700px with everything else at opacity 0, because
+  the rectangle does change every frame. What makes a scroll section feel
+  padded is a long single-channel run, so that is what is measured.
+- **Hover is a state**: every control is hovered and its label measured
+  against what is behind it. Four rules were unreadable on hover, including
+  the primary CTA at 1.02:1, and nothing caught them because every other
+  contrast check sampled elements at rest.
+- **Scroll traps**: no element big enough to sit under a pointer may be a
+  scroll container holding content it cannot show. `overflow: hidden` makes an
+  element a scroll container even though nobody can scroll it, so the wheel
+  goes there instead of to the page; the guarantee sheet swallowed the scroll
+  outright on a phone. Use `overflow: clip` for decorative clipping. It clips
+  identically, rounded corners included, and is never a scrollport.
+- **Behaviour, not bookkeeping**: the paywall test submits a second address
+  and proves no run is granted, rather than reading the flag; the scroll-lock
+  test scrolls with a real wheel event rather than reading a style property.
+  Both bugs shipped under tests that asserted the bookkeeping and passed.
 
 ---
 
@@ -87,17 +110,37 @@ maps to a way this site has actually broken. Some worth knowing about:
 
 ```js
 window.SP_CONFIG = {
-  legalName:  '',   // REQUIRED  e.g. "Jan Kowalski PR"
-  registryNo: '',   // REQUIRED  APR registration number
-  taxId:      '',   // REQUIRED  PIB
-  address:    '',   // REQUIRED  e.g. "Ulica 1, 11000 Beograd"
+  legalName:  '',              // REQUIRED  exactly as registered at the APR
+  entityForm: 'preduzetnik',   //           'preduzetnik' or 'doo'
+  registryNo: '',              // REQUIRED  maticni broj, 8 digits
+  taxId:      '',              // REQUIRED  PIB, 9 digits
+  address:    '',              // REQUIRED  "Knez Mihailova 1, 11000 Beograd"
   ...
 };
 ```
 
-Until these are filled in, the footer imprint and the controller sentence in
-the privacy policy are **omitted entirely** rather than printed with
-placeholders. `npm run check:launch` fails while they are empty.
+**Copy these off the APR registration document, not from memory.** They are
+government-issued identifiers that appear in a public imprint on a site whose
+whole proposition is regulatory compliance; an invented or mistyped one is a
+misrepresentation of a legal entity, and it can collide with a real company's
+number. Nobody but the operator can supply them, which is why they ship empty.
+
+`npm run check` validates the shape of whatever is filled in, even before the
+set is complete, so these fail the build rather than the launch:
+
+- a `registryNo` that is not 8 digits, or a `taxId` that is not 9
+- the same value pasted into both
+- a `legalName` that still reads "test", "example", "placeholder", "TBD"
+- an `address` with no street number or postcode
+- an `entityForm` that is neither `preduzetnik` nor `doo`
+
+`entityForm` is not cosmetic: it picks between "sole proprietor" and "a
+company" in the imprint sentence, and calling a d.o.o. a sole proprietor in a
+public imprint misstates the operator's legal form.
+
+Until the four required fields are set, the footer imprint and the controller
+sentence in the privacy policy are **omitted entirely** rather than printed
+with placeholders, and `npm run check:launch` fails.
 
 An imprint is legally required in most of the markets this site targets. Do
 not launch without it.
@@ -227,6 +270,107 @@ The language picks a default currency; a manual choice is remembered
 
 ---
 
+## 7b. Taking payments
+
+The site is wired for checkout but not selling yet. Turning it on is editing
+`assets/js/config.js`. Nothing else has to change: no SDK, no backend on this
+site, and no change to the Content-Security-Policy.
+
+### Which gateway
+
+The blocker is the seller's country, not the buyer's. **Stripe does not accept
+Serbia as a merchant country**, and neither does Wise Business or Revolut
+Business. Lemon Squeezy is migrating onto Stripe Managed Payments, which
+inherits that same country list, so it is a dead end for a Serbian company.
+
+That leaves two shapes of answer:
+
+| Route | Onboards a Serbian company | EU VAT / OSS |
+|---|---|---|
+| **Merchant of record** (Paddle, Polar) | yes | **none** - they are the seller |
+| Serbian acquirer + gateway (AllSecure, Monri/WSPay, Intesa, AIK, ...) | yes | all of it stays with you |
+| Stripe Atlas (US Delaware C-corp) | via a US entity | all of it stays with you |
+
+A merchant of record is the seller to the Polish, German, Croatian and Romanian
+customer. That removes non-Union OSS registration, per-country VAT rates,
+quarterly OSS returns, customer-location evidence logging and the ten-year
+archive. At around 9 EUR per month that compliance machine costs more per year
+than the merchant-of-record fee ever will, which is why the domestic acquirers
+lose here despite being technically capable. Stripe Atlas is the worst of both:
+a Delaware franchise tax, a Form 5472 with a US$25,000 penalty for missing it,
+and it still leaves the EU VAT liability with you.
+
+**Recommended: Paddle, with Polar as the fallback.** Both are merchants of
+record and both issue hosted checkout links, so they drop into the wiring below
+identically and switching is a config edit.
+
+> **Verify before you commit.** The vendor documentation sites were unreachable
+> from the environment this was researched in, so the eligibility and currency
+> claims above come from search results quoting those pages, not from the pages
+> themselves. Before you sign anything, open Paddle's supported-countries and
+> supported-currencies pages yourself, and confirm Serbia and your currencies.
+> The integration below does not depend on the answer: it is provider-agnostic.
+
+### Turning it on
+
+1. Create the products in the gateway and copy each plan's **hosted checkout
+   URL** (Paddle: `https://pay.paddle.io/checkout/...`).
+2. Fill in `assets/js/config.js`:
+
+   ```js
+   checkout: {
+     provider: 'paddle',
+     currencies: ['eur', 'pln'],     // what the gateway can actually BILL in
+     links: {
+       solo:       'https://pay.paddle.io/checkout/...',
+       business:   'https://pay.paddle.io/checkout/...',
+       accountant: 'https://pay.paddle.io/checkout/...'
+     }
+   }
+   ```
+3. `npm run check` and `npm run e2e`. That is the whole deployment.
+
+`assets/js/checkout.js` rewrites the `href` of each `a[data-checkout]` button.
+A plan whose URL is empty keeps the destination written in the markup, so the
+pre-launch waitlist behaviour survives untouched and you can switch plans on one
+at a time. A URL that is not absolute `https:` is refused rather than followed,
+and `npm run check` fails on one before it ever reaches a browser.
+
+**Currencies.** The price toggle offers PLN, EUR and RON. Paddle has no RON. If
+a reader picks a currency the gateway cannot bill, the pricing section says
+which currency they will actually be charged in - that is what `currencies` is
+for, and `npm run check` fails if you configure links without it. Do not show a
+RON price and silently charge euros.
+
+### Why links and not an SDK
+
+CSP has no directive that restricts where an anchor navigates: `navigate-to`
+was drafted for CSP3 and dropped, and no browser ships it. So a hosted checkout
+link works under `default-src 'self'` with nothing added. `form-action 'self'`
+*does* restrict where a form may POST, so always send buyers with an `<a href>`,
+never a form POST.
+
+A client-side checkout SDK would cost the whole security posture: its bootstrap
+injects inline styles, so it needs `style-src 'unsafe-inline'`, plus `frame-src`
+and `connect-src` entries for the vendor. `npm run check` fails on that, by
+design. The link costs one redirect and nothing else.
+
+Because the destination is a real `href` in the HTML, checkout also works with
+JavaScript disabled.
+
+### What still needs a server
+
+A hosted link removes the checkout server. It does not remove **fulfilment**.
+Something must receive the gateway's subscription webhooks (`created`,
+`updated`, `paused`, `canceled`, `past_due`), verify the signature, and grant or
+revoke access. That belongs to the product, not to this marketing site. If you
+want it in the same Cloudflare project, add `functions/api/<provider>-webhook.js`:
+Pages Functions live outside the five static pages the gates read, so nothing
+here changes. Keep the webhook secret in Cloudflare environment variables, never
+in `config.js` - that file ships to the browser.
+
+---
+
 ## 8. The demo engine
 
 `assets/js/demo.js` is the only genuinely intricate file. What it does:
@@ -319,3 +463,67 @@ trigger still starts where the section does.
 - **The waitlist is optimistic.** `mode: 'no-cors'` hides the status code, so
   a rejected promise (the request never left the machine) is reported and
   anything else is treated as success.
+- **The waitlist stores nothing while `formEndpoint` is empty.** The address
+  goes to `localStorage` and the page says "we will write once, at launch",
+  which is a promise nothing can keep yet. Set the endpoint before launch, or
+  soften the confirmation copy. `npm run check` does not fail on this because
+  it is a deliberate pre-launch state, but it is on the launch list.
+- **Romanian cannot be billed by every gateway.** Paddle has no RON. The price
+  toggle keeps RON because a Romanian reader wants to see a Romanian number,
+  and `checkout.currencies` makes the page say which currency actually gets
+  charged. If you pick a gateway that does bill RON, add it to that list.
+
+---
+
+## 12b. Known small stuff, deliberately left
+
+A final audit turned these up. Each was checked against the code and none of
+them is worth the regression risk of a late change, so they are written down
+rather than fixed. In rough order of how much they matter.
+
+- **Three clocks on one document.** `P_1` and `P_6` come from
+  `toISOString()` (UTC), while the invoice number uses local time. Between
+  midnight and the UTC offset on New Year's Eve, an invoice could be numbered
+  for one year and dated for the previous one. Pick one clock when the real
+  filing path is built server-side.
+- **The unit of measure is hardcoded.** `<P_8A>szt</P_8A>` is written for
+  every line even though the parser recognises `jm` / `jednostka` / `uom`
+  headers. If a sheet says hours or kilograms, the file still says pieces.
+- **The currency guard is cell-level.** `500,00 EUR` in a cell is caught; a
+  column headed "Cena netto (EUR)" is not.
+- **Row numbers count filtered rows.** Blank lines are dropped before the
+  grid is numbered, so a validation error's "row 7" is the seventh non-empty
+  row, not the seventh row of the sheet the reader is looking at.
+- **`#sendlog` does not re-render on a language switch.** Everything else in
+  the demo does. Switch language mid-filing and that one panel keeps the old
+  language until the next run.
+- **`--s1` to `--s7` are unused.** The space scale is declared with a comment
+  telling you to use it, and nothing does. Either adopt it or delete it; a
+  system nobody follows is worse than no system.
+- **The demo has no no-JS fallback of its own.** `noscript.css` covers the
+  hero, the rig, the fold and the marquee, but the demo section renders its
+  first step and no explanation of why it does nothing.
+- **`--fg-lo` and `--fg-faint` differ by 4/4/3 in RGB.** Two tiers the eye
+  reads as one colour.
+
+---
+
+## 13. Judgement calls left to the owner
+
+These came out of the audit and were deliberately **not** changed, because
+they are business decisions rather than defects.
+
+- **The h1 carries no search term.** "Arkusz zostaje arkuszem. Faktura staje
+  się urzędowa." is the whole design concept and the strongest line on the
+  page, but it contains neither "KSeF" nor "Excel" nor "e-faktura". The title
+  tag and meta description carry those. Rewriting the h1 would trade the idea
+  for keywords; that is a call for whoever owns the brand.
+- **The German, Croatian and Romanian pages sell KSeF.** A German searcher
+  looks for XRechnung or ZUGFeRD, a Croatian for fiskalizacija 2.0, a
+  Romanian for e-Factura. Leading with those terms per locale would rank
+  better, but it would also imply the product ships those integrations today.
+  Do it when it does, not before: on a site selling regulatory compliance an
+  overclaim is a liability, not a growth tactic.
+- **The five-step bar in the demo is decorative.** It reads as a stepper.
+  Either wire it to the actual step or restyle it so it does not promise
+  navigation it does not provide.

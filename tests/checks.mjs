@@ -57,9 +57,18 @@ section('Content-Security-Policy (the shipped _headers has no unsafe-inline)');
   assert(offenders.length === 0, 'no inline style or script in any shipped page', offenders.join('\n'));
 
   const headers = read('_headers');
-  assert(/Content-Security-Policy:/.test(headers), '_headers declares a CSP');
-  assert(!/unsafe-inline/.test(headers.split('\n').filter((l) => !l.includes('og-card')).join('\n')),
-    'the site-wide CSP does not use unsafe-inline');
+  const policies = headers.split('\n')
+    .filter((l) => !l.trim().startsWith('#'))
+    .filter((l) => /Content-Security-Policy\s*:/i.test(l));
+  assert(policies.length > 0, '_headers declares a CSP');
+  /* Read the policy lines, not the file. Grepping the whole file meant a
+     comment explaining why the policy forbids unsafe-inline failed the check
+     for containing the words, while a second policy block further down could
+     have introduced it for real without the words appearing on a line the
+     old filter kept. */
+  const loose = policies.filter((l) => /unsafe-inline|unsafe-eval/.test(l));
+  assert(loose.length === 0,
+    'the site-wide CSP does not use unsafe-inline', loose.join('\n'));
 }
 
 /* ---------- 2. i18n integrity ---------- */
@@ -107,7 +116,7 @@ section('i18n');
   assert(unknown.length === 0, `${referenced.size} referenced keys all exist`, unknown.join(', '));
 
   /* and every key must be reachable from markup or from the scripts */
-  const js = ['app.js', 'demo.js', 'motion.js'].map((f) => read(`assets/js/${f}`)).join('\n');
+  const js = ['app.js', 'demo.js', 'motion.js', 'checkout.js'].map((f) => read(`assets/js/${f}`)).join('\n');
   const orphan = plKeys.filter((k) =>
     !referenced.has(k) &&
     !new RegExp(`['"\`]${k}['"\`]`).test(js) &&
@@ -129,6 +138,29 @@ section('i18n');
     if (norm(m[6]) !== norm(T.pl[key])) drift.push(`${key}\n    html: ${norm(m[6])}\n    dict: ${norm(T.pl[key])}`);
   }
   assert(drift.length === 0, 'static Polish markup matches the pl dictionary', drift.join('\n'));
+
+  /* The same rule for the attributes. aria-label, placeholder and the demo's
+     data-t cells are translated too, and one of them had drifted from the
+     dictionary without anything noticing, because the check above only ever
+     compared element text. */
+  const attrDrift = [];
+  const ATTRS = [['aria', 'aria-label'], ['ph', 'placeholder'], ['t', 'data-t']];
+  for (const [suffix, attr] of ATTRS) {
+    const re2 = new RegExp(`<[a-z0-9]+[^>]*?\\b${attr}="([^"]*)"[^>]*?data-i18n-${suffix}="([a-z0-9_]+)"`, 'gi');
+    const re3 = new RegExp(`<[a-z0-9]+[^>]*?data-i18n-${suffix}="([a-z0-9_]+)"[^>]*?\\b${attr}="([^"]*)"`, 'gi');
+    for (const [re, valueFirst] of [[re2, true], [re3, false]]) {
+      for (const m of html.matchAll(re)) {
+        const key = valueFirst ? m[2] : m[1];
+        const value = valueFirst ? m[1] : m[2];
+        if (!(key in T.pl)) continue;
+        if (norm(value) !== norm(T.pl[key])) {
+          attrDrift.push(`${attr}/${key}\n    html: ${norm(value)}\n    dict: ${norm(T.pl[key])}`);
+        }
+      }
+    }
+  }
+  assert(attrDrift.length === 0,
+    'static Polish attributes match the pl dictionary', [...new Set(attrDrift)].join('\n'));
 }
 
 /* ---------- 3. copy hygiene ---------- */
@@ -161,11 +193,76 @@ section('Launch configuration (assets/js/config.js)');
   const val = (k) => (cfg.match(new RegExp(`${k}:\\s*'([^']*)'`)) || [, ''])[1];
   const required = ['legalName', 'registryNo', 'taxId', 'address'];
   const empty = required.filter((k) => !val(k));
+
+  /* Shape-check whatever IS filled in. Serbian identifiers are fixed length,
+     so a transposed digit, a copied placeholder or a PIB pasted into the
+     registry field is catchable here rather than in the footer of a live site
+     that sells regulatory compliance. These run whether or not the whole set
+     is complete, because a half-filled config is exactly when a mistake slips
+     in. */
+  {
+    const bad = [];
+    const rn = val('registryNo'), pib = val('taxId'), name = val('legalName'), addr = val('address');
+    if (rn && !/^\d{8}$/.test(rn)) bad.push(`registryNo "${rn}" is not an 8 digit maticni broj`);
+    if (pib && !/^\d{9}$/.test(pib)) bad.push(`taxId "${pib}" is not a 9 digit PIB`);
+    if (rn && pib && rn === pib) bad.push('registryNo and taxId are the same value');
+    if (name && name.trim().length < 3) bad.push(`legalName "${name}" is too short to be a registered name`);
+    if (name && /^(test|example|placeholder|tbd|xxx)/i.test(name.trim())) bad.push(`legalName "${name}" looks like a placeholder`);
+    if (addr && !/\d/.test(addr)) bad.push(`address "${addr}" has no street number or postcode`);
+    const form = val('entityForm');
+    if (form && !['preduzetnik', 'doo'].includes(form)) bad.push(`entityForm "${form}" must be preduzetnik or doo`);
+    assert(bad.length === 0, 'the legal identity that is filled in has the right shape', bad.join('\n'));
+  }
+
   assertLaunch(empty.length === 0,
     'operator legal identity is filled in',
     `Still empty: ${empty.join(', ')}\n` +
     'The footer imprint and the privacy policy stay blank until these are set.\n' +
     'This is a launch blocker, not a code defect. See HANDOFF.md.');
+}
+
+/* ---------- 4b. checkout configuration ---------- */
+section('Checkout (assets/js/config.js)');
+{
+  const cfg = read('assets/js/config.js');
+  const html = read('index.html');
+
+  /* every plan that can be bought must be findable by the wiring */
+  const wired = [...html.matchAll(/data-checkout="([a-z]+)"/g)].map((m) => m[1]);
+  assert(wired.length === 3 && new Set(wired).size === 3,
+    'every paid plan carries a checkout hook', wired.join(', '));
+
+  /* the links block must declare exactly those plans, or a filled-in URL
+     would sit in config pointing at a button that does not exist */
+  const block = (cfg.match(/links:\s*\{([\s\S]*?)\}/) || [, ''])[1];
+  const declared = [...block.matchAll(/(\w+):/g)].map((m) => m[1]);
+  assert(wired.every((w) => declared.includes(w)) && declared.length === wired.length,
+    'config declares a link for each of them', `markup: ${wired.join(', ')} / config: ${declared.join(', ')}`);
+
+  /* a checkout URL is where a reader arrives with their card out: an http or
+     relative value is a configuration mistake worth failing the build for */
+  const urls = [...block.matchAll(/\w+:\s*'([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  const bad = urls.filter((u) => !/^https:\/\//.test(u));
+  assert(bad.length === 0, 'every configured checkout URL is absolute https', bad.join(', '));
+
+  const curBlock = (cfg.match(/currencies:\s*\[([^\]]*)\]/) || [, ''])[1];
+  const curs = [...curBlock.matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+  const knownCur = ['pln', 'eur', 'ron'];
+  const strayCur = curs.filter((c) => !knownCur.includes(c));
+  assert(strayCur.length === 0,
+    'billable currencies are ones the price toggle offers', strayCur.join(', '));
+
+  /* if payments are live, the reader has to be told what they are charged in */
+  assert(urls.length === 0 || curs.length > 0,
+    'a live checkout declares which currencies it bills in',
+    'checkout.links is filled in but checkout.currencies is empty, so a reader '
+    + 'who picks an unsupported currency is shown a price nobody will charge them');
+
+  if (urls.length === 0) {
+    ok('checkout is not configured yet (the buttons keep their waitlist links)');
+  } else {
+    ok(`checkout is live for ${urls.length} plan(s)`);
+  }
 }
 
 /* ---------- 5. structured data / config files ---------- */
@@ -193,6 +290,117 @@ section('Structured data and config files');
 }
 
 /* ---------- 6. every local reference resolves ---------- */
+section('SEO');
+{
+  /* Google truncates a title around 60 characters and a description around
+     155. Past that the crawler keeps the text but the reader never sees the
+     end of it, and the end is where the call to action lives. Every one of the
+     five descriptions used to run 168 to 182. */
+  {
+    const T = globalThis.window.SP_I18N;
+    const longTitles = Object.entries(T).filter(([, d]) => d.title.length > 60)
+      .map(([l, d]) => `${l}: ${d.title.length}`);
+    assert(longTitles.length === 0, 'every locale title fits a search result', longTitles.join(', '));
+    const longDescs = Object.entries(T).filter(([, d]) => d.desc.length > 158)
+      .map(([l, d]) => `${l}: ${d.desc.length}`);
+    assert(longDescs.length === 0, 'every locale description fits a search result', longDescs.join(', '));
+    /* the static Polish head is what a crawler sees before any script runs */
+    const html = read('index.html');
+    const staticDesc = (html.match(/<meta name="description" content="([^"]*)"/) || [, ''])[1];
+    assert(staticDesc === T.pl.desc, 'the static meta description matches the pl dictionary',
+      `html: ${staticDesc}\ndict: ${T.pl.desc}`);
+    const staticTitle = (html.match(/<title>([^<]*)<\/title>/) || [, ''])[1];
+    assert(staticTitle === T.pl.title, 'the static title matches the pl dictionary',
+      `html: ${staticTitle}\ndict: ${T.pl.title}`);
+  }
+
+  /* Structured data that disagrees with the page is worse than none: Google
+     treats mismatched FAQ markup as a manual-action-grade violation. Generate
+     nothing here, just prove the two still say the same thing. */
+  {
+    const html = read('index.html');
+    const ld = JSON.parse((html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) || [, '{}'])[1]);
+    const graph = ld['@graph'] || [];
+    const faq = graph.find((n) => n['@type'] === 'FAQPage');
+    assert(!!faq, 'the page declares its FAQ as structured data');
+    if (faq) {
+      const strip = (t) => t.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      const qs = [...html.matchAll(/data-i18n="faq\d+_q">([^<]+)</g)].map((m) => strip(m[1]));
+      const as = [...html.matchAll(/data-i18n="faq\d+_a">([\s\S]*?)<\/p>/g)].map((m) => strip(m[1]));
+      assert(faq.mainEntity.length === qs.length,
+        `the structured FAQ covers all ${qs.length} questions on the page`,
+        `markup: ${qs.length}, json-ld: ${faq.mainEntity.length}`);
+      const mismatched = faq.mainEntity.filter((e, i) =>
+        e.name !== qs[i] || (e.acceptedAnswer || {}).text !== as[i]);
+      assert(mismatched.length === 0,
+        'every structured FAQ answer matches the visible one',
+        mismatched.map((e) => e.name).join('\n'));
+    }
+    /* a share card with no declared size renders as a small thumbnail on the
+       first scrape, before the crawler has fetched the image */
+    for (const tag of ['og:image:width', 'og:image:height', 'og:image:type', 'og:image:alt']) {
+      assert(html.includes(`property="${tag}"`), `the share card declares ${tag}`);
+    }
+  }
+
+  const robots = existsSync(join(ROOT, 'robots.txt')) ? read('robots.txt') : '';
+  assert(robots.length > 0, 'robots.txt exists');
+  assert(/Sitemap:\s*https:\/\//.test(robots), 'robots.txt points at the sitemap');
+
+  /* Blocking a script or stylesheet the page needs to render makes the crawler
+     see a different page than the reader does. /assets/js/vendor/ was disallowed
+     once, which meant Googlebot rendered the site down its no-JS branch. */
+  const disallows = [...robots.matchAll(/^\s*Disallow:\s*(\S+)/gim)].map((m) => m[1]);
+  const blocksRender = disallows.filter((d) => d !== '' &&
+    (/\.(js|css|woff2?|svg|png|jpe?g)$/i.test(d) || /assets|css|js|fonts|img/i.test(d)));
+  assert(blocksRender.length === 0,
+    'robots.txt does not block anything the page needs to render', blocksRender.join(', '));
+
+  /* A sitemap is a request to index. A noindex page is a refusal. Submitting
+     one is reported as an error in Search Console. */
+  const sitemap = read('sitemap.xml');
+  const locs = [...sitemap.matchAll(/<loc>https:\/\/sheetpost\.app\/([^<]*)<\/loc>/g)].map((m) => m[1]);
+  const noindexed = locs.filter((l) => {
+    const f = l.split('?')[0] || 'index.html';
+    if (!existsSync(join(ROOT, f))) return false;
+    return /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(read(f));
+  });
+  assert(noindexed.length === 0,
+    'the sitemap does not submit any page that declares noindex', noindexed.join(', '));
+
+  /* Every page a reader can land on states which URL it is. */
+  const noCanonical = PAGES.filter((f) => f !== '404.html' && !/rel=["']canonical["']/.test(read(f)));
+  assert(noCanonical.length === 0, 'every indexable page declares a canonical URL', noCanonical.join(', '));
+
+  /* hreflang has to be reciprocal with the sitemap, or the two disagree about
+     which translations exist. */
+  const htmlAlts = [...read('index.html').matchAll(/hreflang="([a-z-]+)"/g)].map((m) => m[1]).sort();
+  const mapAlts = [...sitemap.matchAll(/hreflang="([a-z-]+)"/g)].map((m) => m[1]).sort();
+  assert(htmlAlts.length > 0 && htmlAlts.join(',') === mapAlts.join(','),
+    'hreflang in the markup and in the sitemap agree',
+    `markup: ${htmlAlts.join(', ')}\nsitemap: ${mapAlts.join(', ')}`);
+
+  /* A share card that 404s is worse than none: the platform shows a blank box. */
+  const head = read('index.html');
+  const social = [...head.matchAll(/<meta[^>]+(?:property="og:image"|name="twitter:image")[^>]+content="([^"]+)"/g)]
+    .map((m) => m[1]);
+  assert(social.length >= 2, 'the page declares an Open Graph and a Twitter image');
+  const missingSocial = social
+    .map((u) => u.replace('https://sheetpost.app/', ''))
+    .filter((f) => !existsSync(join(ROOT, f)));
+  assert(missingSocial.length === 0, 'every social share image exists', missingSocial.join(', '));
+
+  /* Dead vendor weight ships to every visitor and is easy to forget about. */
+  const vendorDir = join(ROOT, 'assets/js/vendor');
+  if (existsSync(vendorDir)) {
+    const corpus = [...PAGES.map(read),
+      ...readdirSync(join(ROOT, 'assets/js')).filter((f) => f.endsWith('.js'))
+        .map((f) => read(`assets/js/${f}`))].join('\n');
+    const dead = readdirSync(vendorDir).filter((f) => !corpus.includes(f));
+    assert(dead.length === 0, 'no unreferenced libraries in assets/js/vendor', dead.join(', '));
+  }
+}
+
 section('Local references');
 {
   const missing = [];

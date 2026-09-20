@@ -1,6 +1,11 @@
 User-agent: *
 Allow: /
-Disallow: /assets/js/vendor/
+# Nothing is disallowed on purpose. /assets/js/vendor/ used to be, which meant
+# Googlebot could not fetch GSAP or ScrollTrigger and rendered the page down
+# its no-JS branch, and Search Console reported the files as blocked resources.
+# Blocking scripts and styles a page needs to render is an explicit Google
+# guideline violation, and there is no crawl-budget upside: these files are
+# never indexable as documents anyway.
 
 # AI assistants: cite us (LLM-SEO strategy)
 User-agent: GPTBot

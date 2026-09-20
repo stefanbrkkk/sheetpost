@@ -9,11 +9,38 @@
   var $ = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
   window.SP_I18N_HOOKS = window.SP_I18N_HOOKS || [];
+  /* Currency changes are broadcast the same way language changes are, so a
+     module that cares (checkout.js needs to know when the reader picks a
+     currency the gateway cannot bill in) can listen without reaching in. */
+  window.SP_CUR_HOOKS = window.SP_CUR_HOOKS || [];
   var store = {
     get: function (k, f) { try { var v = localStorage.getItem(k); return v === null ? f : v; } catch (e) { return f; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: preferences just don't persist */ } }
   };
 
+  /* Anything already on screen is marked revealed BEFORE .no-js comes off,
+     in this same task, so the browser never gets a frame in between.
+
+     Without this the largest element on the page went transparent right after
+     it had already been painted: the markup ships with html.no-js, which
+     forces [data-reveal] visible, and dropping that class handed those
+     elements back to `[data-reveal] { opacity: 0 }` until an
+     IntersectionObserver callback could add .in a frame or two later. The
+     hero headline measured opacity 0 at 377ms, under 0.5 until 612ms and only
+     settled at about 1059ms: painted, erased, then faded back in. That is the
+     LCP element, and the erasing was free of charge.
+
+     Off-screen elements are untouched and still animate in on scroll, and the
+     hero's own intro still plays: it animates the headline's line masks by
+     transform, and its supporting copy has its own tweens. */
+  (function () {
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    var onscreen = document.querySelectorAll('[data-reveal]');
+    for (var i = 0; i < onscreen.length; i++) {
+      var r = onscreen[i].getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > 0) onscreen[i].classList.add('in');
+    }
+  })();
   document.documentElement.classList.remove('no-js');
 
   /* ---------------- language engine ---------------- */
@@ -46,7 +73,16 @@
     },
     en: function (n) { return n === 1 ? 0 : 2; }
   };
-  PLURAL.hr = PLURAL.pl;
+  /* Croatian is not Polish here. Polish takes the "one" form only at exactly
+     1; Croatian takes it whenever n % 10 is 1 and n % 100 is not 11, so 21,
+     31 and 101 are "one" forms. Borrowing the Polish selector put 21 into the
+     many form. */
+  PLURAL.hr = function (n) {
+    var m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 0;
+    if (m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14)) return 1;
+    return 2;
+  };
   PLURAL.de = PLURAL.en;
 
   function t(key, vars) {
@@ -159,6 +195,9 @@
     $$('.plans-toggle button').forEach(function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-cur') === cur ? 'true' : 'false');
     });
+    window.SP_CUR_HOOKS.forEach(function (fn) {
+      try { fn(cur); } catch (e) { /* one bad hook must not stop the swap */ }
+    });
   }
 
   initLang();
@@ -186,7 +225,7 @@
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-    revealEls.forEach(function (el) { io.observe(el); });
+    revealEls.forEach(function (el) { if (!el.classList.contains('in')) io.observe(el); });
   } else {
     revealEls.forEach(function (el) { el.classList.add('in'); });
   }
@@ -213,6 +252,18 @@
     menu.hidden = !open;
     menu.classList.toggle('open', open);
     burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    /* the root is the scroll container here, because it sets overflow-x: clip
+       to contain the wide sections, and overflow only propagates from body to
+       the viewport while the root's own overflow is visible. Setting it on
+       body alone left the page scrolling behind the open menu. */
+    /* The overlay is z-index 90 and the header is 60, so the burger that
+       opened the menu was painted underneath it and could not be tapped
+       again. Escape closed the menu and so did tapping a link, but a phone
+       has no Escape key: a reader who opened the menu and changed their mind
+       had no way out. The header rides above the overlay while it is open,
+       which is also what the burger's own aria-expanded has always claimed. */
+    if (nav) nav.classList.toggle('menu-open', open);
+    document.documentElement.classList.toggle('is-locked', open);
     document.body.style.overflow = open ? 'hidden' : '';
     setBackgroundInert(open);
     if (open) {
@@ -414,6 +465,16 @@
         list.push(payload);
         store.set('sp_waitlist', JSON.stringify(list));
         if (ok) {
+          /* Say what actually happened. With no endpoint configured the
+             address never leaves the browser, so promising "you are on the
+             list" is a promise nothing can keep. The launch copy comes back
+             on its own the moment formEndpoint is set. */
+          var okText = ok.querySelector('[data-i18n]');
+          if (okText) {
+            var key = FORM_ENDPOINT ? 'cta_ok' : 'cta_ok_local';
+            okText.setAttribute('data-i18n', key);
+            okText.textContent = t(key);
+          }
           ok.hidden = false;
           ok.classList.add('show');
           /* the focused button is about to be disabled: hand focus to the
@@ -445,4 +506,5 @@
   /* expose tiny helpers for other modules */
   window.SPStore = store;
   window.SPLocale = localeOf;
+  window.SPCurrency = currencyOf;
 })();
