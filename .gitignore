@@ -11,3 +11,16 @@ assets/fonts/*-800-*.woff2
 node_modules/
 assets/img/qa-*.png
 tests/artifacts/
+
+# Credentials and local request captures
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.har
+cookies.txt
+cookies*.txt
